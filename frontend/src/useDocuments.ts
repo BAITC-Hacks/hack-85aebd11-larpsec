@@ -61,7 +61,7 @@ export function useDocuments() {
     const analysis = next.status === 'completed' ? await getResult(id, signal) : null;
     if (generation.current !== expectedGeneration || signal.aborted) return;
     saveComparison(next);
-    if (analysis) setResult(analysis);
+    setResult(analysis);
     changeDocuments((current) => {
       const existing = new Map(current.filter((document) => document.serverId).map((document) => [document.serverId!, document]));
       const server = next.documents.flatMap((document) => {
@@ -83,7 +83,8 @@ export function useDocuments() {
         if (generation.current === expectedGeneration && !signal.aborted) update(local.id, { status: 'error', error: message(failure) });
       }
     }));
-    if (generation.current === expectedGeneration && !signal.aborted) setError(next.status === 'failed' ? next.error?.message || 'Анализ завершился с ошибкой. Повторите запуск.' : '');
+    // A failed analysis belongs to comparison.error, not to connection errors.
+    if (generation.current === expectedGeneration && !signal.aborted) setError('');
   }, [changeDocuments, saveComparison, update]);
 
   useEffect(() => {
@@ -251,6 +252,7 @@ export function useDocuments() {
     if (generation.current !== expectedGeneration) return;
     if (serverId && comparisonRef.current) saveComparison({ ...comparisonRef.current, documents: comparisonRef.current.documents.filter((item) => item.id !== serverId) });
     changeDocuments((current) => current.filter((item) => item.id !== id));
+    if (serverId && targetId) await syncComparison(targetId, expectedGeneration, session.current.signal);
   };
 
   const analyze = async (beforeComplete: boolean, afterComplete: boolean): Promise<void> => {
@@ -282,7 +284,7 @@ export function useDocuments() {
       const nextHealth = await getHealth(session.current.signal);
       if (generation.current === expectedGeneration) {
         setHealth(nextHealth);
-        setError(comparisonRef.current?.status === 'failed' ? comparisonRef.current.error?.message || 'Анализ завершился с ошибкой. Повторите запуск.' : '');
+        setError('');
       }
     } catch (failure) {
       if (generation.current === expectedGeneration && !session.current.signal.aborted) setError(message(failure));

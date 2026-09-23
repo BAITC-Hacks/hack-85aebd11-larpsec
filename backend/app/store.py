@@ -134,6 +134,10 @@ class Store:
                 409,
             )
 
+    def _reset_failed_analysis(self, data: dict) -> None:
+        if data["status"] == "failed":
+            data.update(status="draft", stage="draft", progress=0, error=None, mode=None)
+
     def coverage(self, comparison_id: str, before: bool, after: bool) -> Comparison:
         with self.connect(write=True) as db:
             data = self._load(db, comparison_id)
@@ -175,6 +179,7 @@ class Store:
                     str(path),
                 ),
             )
+            self._reset_failed_analysis(data)
             self._save(db, data)
         return document
 
@@ -196,7 +201,8 @@ class Store:
 
     def delete_document(self, comparison_id: str, document_id: str) -> None:
         with self.connect(write=True) as db:
-            self._editable(self._load(db, comparison_id))
+            data = self._load(db, comparison_id)
+            self._editable(data)
             row = db.execute(
                 "SELECT path FROM documents WHERE id=? AND comparison_id=?",
                 (document_id, comparison_id),
@@ -204,6 +210,8 @@ class Store:
             if row is None:
                 raise AppError("not_found", "Документ не найден.", 404)
             db.execute("DELETE FROM documents WHERE id=?", (document_id,))
+            self._reset_failed_analysis(data)
+            self._save(db, data)
         Path(row[0]).unlink(missing_ok=True)
 
     def delete_comparison(self, comparison_id: str) -> None:
