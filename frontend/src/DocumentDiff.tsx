@@ -13,6 +13,8 @@ type ReadyDocument = WorkspaceDocument & { result: NonNullable<WorkspaceDocument
 type Calculation = {
   before: string;
   after: string;
+  beforeXlsx: boolean;
+  afterXlsx: boolean;
   attempt: number;
 } & ({ status: 'loading' } | { status: 'error' } | { status: 'ready'; result: TextDiff });
 
@@ -51,8 +53,14 @@ function Line({ line, side, changed }: { line: DiffLine | null; side: 'before' |
 function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocument }) {
   const beforeText = before.result.text;
   const afterText = after.result.text;
+  const beforeXlsx = before.name.toLowerCase().endsWith('.xlsx');
+  const afterXlsx = after.name.toLowerCase().endsWith('.xlsx');
+  const beforeFragments = useMemo(() => beforeXlsx ? before.result.paragraphs.map((paragraph) => paragraph.text) : undefined, [beforeXlsx, before.result.paragraphs]);
+  const afterFragments = useMemo(() => afterXlsx ? after.result.paragraphs.map((paragraph) => paragraph.text) : undefined, [afterXlsx, after.result.paragraphs]);
+  const beforeFragmentLocators = useMemo(() => beforeXlsx ? before.result.paragraphs.map((paragraph) => paragraph.locator) : undefined, [beforeXlsx, before.result.paragraphs]);
+  const afterFragmentLocators = useMemo(() => afterXlsx ? after.result.paragraphs.map((paragraph) => paragraph.locator) : undefined, [afterXlsx, after.result.paragraphs]);
   const [attempt, setAttempt] = useState(0);
-  const [calculation, setCalculation] = useState<Calculation>({ status: 'loading', before: beforeText, after: afterText, attempt });
+  const [calculation, setCalculation] = useState<Calculation>({ status: 'loading', before: beforeText, after: afterText, beforeXlsx, afterXlsx, attempt });
   const [onlyChanges, setOnlyChanges] = useState(false);
   const [page, setPage] = useState(0);
   const [activeBlock, setActiveBlock] = useState(-1);
@@ -62,14 +70,15 @@ function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocu
   const tableHead = useRef<HTMLTableSectionElement>(null);
   const rowElements = useRef(new Map<string, HTMLTableRowElement>());
   const paginationId = useId();
-  const result = calculation.status === 'ready' && calculation.before === beforeText && calculation.after === afterText && calculation.attempt === attempt ? calculation.result : null;
-  const failed = calculation.status === 'error' && calculation.before === beforeText && calculation.after === afterText && calculation.attempt === attempt;
+  const calculationCurrent = calculation.before === beforeText && calculation.after === afterText && calculation.beforeXlsx === beforeXlsx && calculation.afterXlsx === afterXlsx && calculation.attempt === attempt;
+  const result = calculation.status === 'ready' && calculationCurrent ? calculation.result : null;
+  const failed = calculation.status === 'error' && calculationCurrent;
 
   useEffect(() => {
     const id = ++requestId.current;
     let disposed = false;
     let worker: Worker | undefined;
-    const source = { before: beforeText, after: afterText, attempt };
+    const source = { before: beforeText, after: afterText, beforeXlsx, afterXlsx, attempt };
     setCalculation({ ...source, status: 'loading' });
     setPage(0);
     setActiveBlock(-1);
@@ -89,12 +98,19 @@ function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocu
       };
       worker.onerror = fail;
       worker.onmessageerror = fail;
-      worker.postMessage({ id, before: beforeText, after: afterText });
+      worker.postMessage({ id, before: beforeText, after: afterText, options: {
+        beforeFormat: beforeXlsx ? 'xlsx' : 'text',
+        afterFormat: afterXlsx ? 'xlsx' : 'text',
+        beforeFragments,
+        afterFragments,
+        beforeFragmentLocators,
+        afterFragmentLocators,
+      } });
     } catch {
       fail();
     }
     return () => { disposed = true; worker?.terminate(); };
-  }, [beforeText, afterText, attempt]);
+  }, [beforeText, afterText, beforeXlsx, afterXlsx, beforeFragments, afterFragments, beforeFragmentLocators, afterFragmentLocators, attempt]);
 
   const blocks = useMemo(() => {
     const starts: string[] = [];
@@ -189,7 +205,7 @@ function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocu
           <button className="document-diff-icon-button" type="button" disabled={currentPage === pageCount - 1} onClick={() => goToPage(currentPage + 1)} aria-label="Следующая часть текста"><ChevronRight size={17} /></button>
         </div>}
       </div>
-      <p className="document-diff-footnote">Номера относятся к строкам этого просмотра. Пустые строки, различия в пробелах, форматирование и изображения не выделяются.</p>
+      <p className="document-diff-footnote">Номера относятся к строкам этого просмотра. Пустые строки, различия в пробелах, форматирование и изображения не выделяются.{(beforeXlsx || afterXlsx) && ' В Excel сдвиг номеров строк в адресах ячеек не считается изменением; адреса и значения показаны как в источнике.'}</p>
     </> : !emptyTexts && <div className="document-diff-filter-empty panel"><Check size={22} /><p>В выбранной паре нет изменённых строк.</p><button className="text-button" type="button" onClick={() => setOnlyChanges(false)}>Показать весь текст <ArrowRight size={15} /></button></div>}
   </div>;
 }

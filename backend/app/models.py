@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 Side = Literal["before", "after"]
+DocumentFormat = Literal["docx", "pdf", "xlsx", "txt"]
 Status = Literal["draft", "queued", "running", "completed", "failed"]
 
 
@@ -42,7 +43,7 @@ class Document(Model):
     comparison_id: str
     side: Side
     filename: str
-    format: str
+    format: DocumentFormat
     sha256: str
     size_bytes: int
     text_chars: int

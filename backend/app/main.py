@@ -202,7 +202,7 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
     def upload_document(
         comparison_id: str,
         side: Side,
-        file: Annotated[UploadFile, File(description="Один DOCX, PDF или XLSX")],
+        file: Annotated[UploadFile, File(description="Один DOCX, PDF, XLSX или TXT")],
     ):
         store = app.state.store
         comparison = store.get(comparison_id)
@@ -217,7 +217,7 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
         )[:200]
         suffix = Path(filename).suffix.lower()
         if suffix not in SUPPORTED:
-            raise AppError("unsupported_format", "Поддерживаются DOCX, PDF и XLSX.", 415)
+            raise AppError("unsupported_format", "Поддерживаются DOCX, PDF, XLSX и TXT.", 415)
         document_id = uuid4().hex
         path = store.uploads / (document_id + suffix)
         digest, size = hashlib.sha256(), 0

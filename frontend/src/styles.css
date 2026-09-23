@@ -566,6 +566,7 @@ main {
 
 .panel-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 25px;
@@ -603,6 +604,15 @@ main {
   color: #89957e;
   padding: 5px 8px;
   border-radius: 4px;
+  white-space: nowrap;
+}
+
+.upload-format-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  text-align: center;
+  margin-top: 6px;
 }
 
 .version-row {

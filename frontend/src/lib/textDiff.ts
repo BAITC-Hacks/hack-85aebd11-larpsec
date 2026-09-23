@@ -1,3 +1,5 @@
+import { omitTextRanges, xlsxRowNumberRanges, type TextRange } from './xlsxText';
+
 export type DiffSegment = { text: string; changed: boolean };
 
 export type DiffLine = {
@@ -20,7 +22,18 @@ export type TextDiff = {
   changeBlocks: number;
 };
 
-type SourceLine = { number: number; text: string; key: string };
+export type TextDiffOptions = {
+  beforeFormat?: 'text' | 'xlsx';
+  afterFormat?: 'text' | 'xlsx';
+  // Parser fragment boundaries distinguish spreadsheet rows from line breaks
+  // inside values. Without these, XLSX input is treated as one fragment.
+  beforeFragments?: readonly string[];
+  afterFragments?: readonly string[];
+  beforeFragmentLocators?: readonly (string | undefined)[];
+  afterFragmentLocators?: readonly (string | undefined)[];
+};
+
+type SourceLine = { number: number; text: string; key: string; ignoredRanges: TextRange[] };
 type Edit =
   | { kind: 'equal'; before: SourceLine; after: SourceLine }
   | { kind: 'removed'; before: SourceLine }
@@ -42,11 +55,28 @@ function comparisonKey(text: string): string {
   return text.replace(/\s+/gu, ' ').trim();
 }
 
-function sourceLines(text: string): SourceLine[] {
+function sourceLines(text: string, format?: 'text' | 'xlsx', sourceFragments?: readonly string[], sourceLocators?: readonly (string | undefined)[]): SourceLine[] {
   const lines: SourceLine[] = [];
-  for (const original of text.split(/\r\n|\n|\r/u)) {
-    const key = comparisonKey(original);
-    if (key) lines.push({ number: lines.length + 1, text: original, key });
+  // Accept boundaries only when they describe the exact source being displayed.
+  const fragments = format === 'xlsx' && sourceFragments && sourceFragments.join('\n\n') === text ? sourceFragments : [text];
+  for (const [fragmentIndex, fragment] of fragments.entries()) {
+    const locator = fragments === sourceFragments ? sourceLocators?.[fragmentIndex] : undefined;
+    const ranges = format === 'xlsx' ? xlsxRowNumberRanges(fragment, locator) : [];
+    const parts = fragment.split(/(\r\n|\n|\r)/u);
+    let offset = 0;
+    let rangeIndex = 0;
+    for (let index = 0; index < parts.length; index += 2) {
+      const original = parts[index];
+      const end = offset + original.length;
+      const ignoredRanges: TextRange[] = [];
+      while (rangeIndex < ranges.length && ranges[rangeIndex].start < end) {
+        const range = ranges[rangeIndex++];
+        ignoredRanges.push({ start: range.start - offset, end: range.end - offset });
+      }
+      const key = comparisonKey(omitTextRanges(original, ignoredRanges));
+      if (key) lines.push({ number: lines.length + 1, text: original, key, ignoredRanges });
+      offset = end + (parts[index + 1]?.length ?? 0);
+    }
   }
   return lines;
 }
@@ -251,12 +281,25 @@ function appendSegment(segments: DiffSegment[], text: string, changed: boolean):
   else segments.push({ text, changed });
 }
 
-function tokenize(text: string): Token[] {
-  return (text.match(/\s+|[\p{L}\p{M}\p{N}_]+|[^\s\p{L}\p{M}\p{N}_]/gu) ?? [])
-    .map((token) => ({ text: token, key: /^\s+$/u.test(token) ? ' ' : token }));
+function tokenize(line: SourceLine): Token[] {
+  const tokens: Token[] = [];
+  let rangeIndex = 0;
+  for (const match of line.text.matchAll(/\s+|[\p{L}\p{M}\p{N}_]+|[^\s\p{L}\p{M}\p{N}_]/gu)) {
+    const text = match[0];
+    const start = match.index;
+    const end = start + text.length;
+    const ranges: TextRange[] = [];
+    while (rangeIndex < line.ignoredRanges.length && line.ignoredRanges[rangeIndex].start < end) {
+      const range = line.ignoredRanges[rangeIndex++];
+      ranges.push({ start: range.start - start, end: range.end - start });
+    }
+    const key = /^\s+$/u.test(text) ? ' ' : omitTextRanges(text, ranges);
+    tokens.push({ text, key });
+  }
+  return tokens;
 }
 
-function inlineSegments(before: string, after: string, budget: Budget): [DiffSegment[], DiffSegment[]] {
+function inlineSegments(before: SourceLine, after: SourceLine, budget: Budget): [DiffSegment[], DiffSegment[]] {
   const left = tokenize(before);
   const right = tokenize(after);
   const beforeSegments: DiffSegment[] = [];
@@ -310,9 +353,9 @@ function displayLine(line: SourceLine, changed: boolean): DiffLine {
  * Text and word segments retain the original characters on each side. Line
  * numbers count displayed nonblank lines independently in the two documents.
  */
-export function buildTextDiff(beforeText: string, afterText: string): TextDiff {
-  const before = sourceLines(beforeText);
-  const after = sourceLines(afterText);
+export function buildTextDiff(beforeText: string, afterText: string, options: TextDiffOptions = {}): TextDiff {
+  const before = sourceLines(beforeText, options.beforeFormat, options.beforeFragments, options.beforeFragmentLocators);
+  const after = sourceLines(afterText, options.afterFormat, options.afterFragments, options.afterFragmentLocators);
   const edits: Edit[] = [];
   const budget: Budget = { alignment: ALIGNMENT_BUDGET, inline: INLINE_BUDGET };
   alignLines(before, after, 0, before.length, 0, after.length, edits, budget);
@@ -329,7 +372,7 @@ export function buildTextDiff(beforeText: string, afterText: string): TextDiff {
     let beforeLine = left ? displayLine(left, kind !== 'equal') : null;
     let afterLine = right ? displayLine(right, kind !== 'equal') : null;
     if (kind === 'modified' && left && right) {
-      const [beforeSegments, afterSegments] = inlineSegments(left.text, right.text, budget);
+      const [beforeSegments, afterSegments] = inlineSegments(left, right, budget);
       beforeLine = { number: left.number, text: left.text, segments: beforeSegments };
       afterLine = { number: right.number, text: right.text, segments: afterSegments };
     }

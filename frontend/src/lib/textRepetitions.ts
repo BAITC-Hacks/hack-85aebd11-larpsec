@@ -1,4 +1,5 @@
 import type { Paragraph, WorkspaceDocument } from './types';
+import { xlsxComparisonText } from './xlsxText';
 
 export type TextOccurrence = {
   fragmentId: string;
@@ -20,8 +21,8 @@ function normalized(text: string): string {
   return text.normalize('NFC').replace(/\s+/gu, ' ').trim().toLowerCase();
 }
 
-function paragraphBody(paragraph: Paragraph): string {
-  const text = normalized(paragraph.text);
+function paragraphBody(paragraph: Paragraph, isXlsx: boolean): string {
+  const text = normalized(isXlsx ? xlsxComparisonText(paragraph.text, paragraph.locator) : paragraph.text);
   const section = normalized(paragraph.section ?? '').replace(/[.)]$/u, '');
   if (!/^\d+(?:\.\d+)*$/u.test(section)) return text;
 
@@ -42,6 +43,7 @@ export function findTextRepetitions(documents: WorkspaceDocument[]): TextRepetit
   for (const document of documents) {
     if (document.status !== 'ready' || !document.serverId || !document.result || seenDocuments.has(document.serverId)) continue;
     seenDocuments.add(document.serverId);
+    const isXlsx = document.name.toLowerCase().endsWith('.xlsx');
     const groups = new Map<string, TextOccurrence[]>();
     const seenFragments = new Set<string>();
 
@@ -49,7 +51,7 @@ export function findTextRepetitions(documents: WorkspaceDocument[]): TextRepetit
       if (!paragraph.id || seenFragments.has(paragraph.id)) continue;
       seenFragments.add(paragraph.id);
       if (normalized(paragraph.locator ?? '').startsWith('колонтитул')) continue;
-      const body = paragraphBody(paragraph);
+      const body = paragraphBody(paragraph, isXlsx);
       if (body.length < 40 || (body.match(/\p{L}[\p{L}\p{M}]*/gu)?.length ?? 0) < 5) continue;
 
       const occurrence: TextOccurrence = {

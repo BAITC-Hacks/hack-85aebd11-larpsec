@@ -4,7 +4,7 @@ import ComparisonResults from './ComparisonResults';
 import DocumentDiff from './DocumentDiff';
 import { ConnectionSettings } from './ConnectionSettings';
 import { ComparisonControls } from './ComparisonControls';
-import { DOCX_MIME, downloadText, formatBytes, plural } from './lib/documents';
+import { DOCX_MIME, DOCUMENT_ACCEPT, DOCUMENT_FORMATS, downloadText, formatBytes, plural } from './lib/documents';
 import type { DocumentPhase, WorkspaceDocument } from './lib/types';
 import { useDocuments } from './useDocuments';
 
@@ -16,7 +16,7 @@ function Brand({ small = false }: { small?: boolean }) {
 }
 
 function FileIcon({ small = false, name = '' }: { small?: boolean; name?: string }) {
-  return <span className={`file-icon ${small ? 'small' : ''}`}><FileText aria-hidden="true" size={small ? 21 : 27} /><span>{name.toLowerCase().endsWith('.pdf') ? 'P' : name.toLowerCase().endsWith('.xlsx') ? 'X' : 'W'}</span></span>;
+  return <span className={`file-icon ${small ? 'small' : ''}`}><FileText aria-hidden="true" size={small ? 21 : 27} /><span>{name.toLowerCase().endsWith('.pdf') ? 'P' : name.toLowerCase().endsWith('.xlsx') ? 'X' : name.toLowerCase().endsWith('.txt') ? 'T' : 'W'}</span></span>;
 }
 
 function Status({ doc }: { doc: WorkspaceDocument }) {
@@ -32,7 +32,7 @@ function Guide({ onClose }: { onClose: () => void }) {
     <h2>От документа<br />к понятной структуре.</h2>
     <p>Начните с положения о подразделении, должностной инструкции или другого организационного документа.</p>
     <ol className="guide-steps">
-      <li><span>01</span><div><strong>Выберите документы до и после</strong><p>DOCX, PDF с текстовым слоем или XLSX. По одному файлу размером до 20 МБ. Для сканов нужно распознавание текста.</p></div></li>
+      <li><span>01</span><div><strong>Выберите документы до и после</strong><p>Word (DOCX), PDF с текстовым слоем, Excel (XLSX) или TXT. По одному файлу размером до 20 МБ. Для PDF-сканов сначала распознайте текст.</p></div></li>
       <li><span>02</span><div><strong>Укажите версию и запустите обработку</strong><p>Сервер сохранит документ, извлечёт текст и номера пунктов. Загрузите оба комплекта документов.</p></div></li>
       <li><span>03</span><div><strong>Сравните версии</strong><p>Откройте «Сравнить текст»: слева будет документ до изменений, справа — после. Удалённые строки выделены красным, добавленные — зелёным. Для анализа функций укажите полноту комплектов и нажмите «Запустить сравнение».</p></div></li>
     </ol>
@@ -69,7 +69,7 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
       </div>
       <aside className="result-aside">
         <div className="panel document-summary"><span className="eyebrow">О ДОКУМЕНТЕ</span><h3>Всё на своём месте</h3><dl><div><dt>Фрагменты</dt><dd>{result.paragraphs.length}</dd></div><div><dt>Нумерованные пункты</dt><dd>{sections.length}</dd></div><div><dt>Символы</dt><dd>{result.text.length.toLocaleString('ru-RU')}</dd></div><div><dt>Версия</dt><dd>{phaseLabels[doc.phase]}</dd></div></dl></div>
-        <div className="reading-note"><BookOpen size={21} /><h3>Сохраняем смысл источника</h3><p>Фрагменты и адреса источников получены с сервера. Для PDF указаны страницы, для таблиц — листы и ячейки.</p><p>Таблицы отображаются как текст. Для проверки оформления используйте оригинал.</p></div>
+        <div className="reading-note"><BookOpen size={21} /><h3>Сохраняем смысл источника</h3><p>Фрагменты и адреса источников получены с сервера. Для PDF указаны страницы, для Excel — листы и ячейки, для TXT — номера строк.</p><p>Таблицы отображаются как текст. Для проверки оформления используйте оригинал.</p></div>
         <div className="next-step"><span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП</span><GitCompareArrows size={23} /><h3>Сравнение версий</h3><p>Откройте документы рядом, чтобы увидеть удалённые и добавленные строки. Затем можно перейти к анализу функций.</p><button className="text-button" onClick={onCompare}>К сравнению <ArrowRight size={16} /></button></div>
       </aside>
     </div>
@@ -107,7 +107,7 @@ export default function App() {
   const accept = async (files: FileList | File[] | null) => {
     if (!files?.length || unavailable || accepting.current) return;
     setError('');
-    if (files.length !== 1) { setError('Добавляйте по одному документу. Выберите один DOCX, PDF или XLSX.'); return; }
+    if (files.length !== 1) { setError(`Добавляйте по одному документу. Поддерживаются ${DOCUMENT_FORMATS}.`); return; }
     accepting.current = true;
     setChoosing(true);
     try { const doc = await add(files[0], phase); setSelectedId(doc.id); }
@@ -178,12 +178,12 @@ export default function App() {
         </div> : selected?.status === 'ready' && selected.result ? <ResultView key={selected.id} doc={selected} onBack={newDocument} onCompare={showTextComparison} /> : selected?.status === 'error' && selected.serverId ? <section className="comparison-empty panel"><h2>Не удалось загрузить текст</h2><p>{selected.error}</p><button className="button secondary" disabled={busy || working || loading} onClick={() => void run(() => process(selected))}>Повторить загрузку текста</button></section> : locked ? <div className="notice"><LockKeyhole size={18} /><p>Комплект зафиксирован для анализа. Документы доступны в списке ниже. Для загрузки других файлов создайте новое сравнение.</p></div> : <>
           <div className="upload-layout">
             <section className="upload-panel panel" aria-labelledby="upload-title">
-              <div className="panel-heading"><div><span className="step-number">01</span><h2 id="upload-title">Загрузите документ</h2></div><span className="file-type-pill">DOCX · PDF · XLSX</span></div>
+              <div className="panel-heading"><div><span className="step-number">01</span><h2 id="upload-title">Загрузите документ</h2></div><span className="file-type-pill">DOCX · PDF · XLSX · TXT</span></div>
               <div className="version-row"><span>Версия документа</span><div className="segmented" role="group" aria-label="Версия документа">{(['before', 'after'] as const).map((value) => <button key={value} aria-pressed={phase === value} disabled={unavailable || Boolean(selected && (selected.serverId || selected.uploadAttempted || selected.status !== 'selected'))} className={phase === value ? 'selected' : ''} onClick={() => { setPhase(value); if (selected) update(selected.id, { phase: value }); }}>{phase === value && <span className="segment-dot" />}{phaseLabels[value]}</button>)}</div></div>
-              <input ref={input} type="file" accept=".docx,.pdf,.xlsx" disabled={unavailable} className="visually-hidden" aria-label="Выбрать документ" tabIndex={-1} onChange={(e) => void accept(e.target.files)} />
+              <input ref={input} type="file" accept={DOCUMENT_ACCEPT} disabled={unavailable} className="visually-hidden" aria-label="Выбрать документ" tabIndex={-1} onChange={(e) => void accept(e.target.files)} />
               {!selected ? <div className={`dropzone ${dragging ? 'dragging' : ''}`} onDragEnter={(e) => { e.preventDefault(); dragDepth.current++; setDragging(true); }} onDragLeave={(e) => { e.preventDefault(); dragDepth.current--; if (dragDepth.current === 0) setDragging(false); }} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); setDragging(false); dragDepth.current = 0; void accept(e.dataTransfer.files); }}>
                 <div className="upload-illustration" aria-hidden="true"><div className="paper paper-back" /><div className="paper paper-front"><span className="paper-w">W</span><i /><i /><i /></div><span className="upload-circle"><Upload size={19} /></span><span className="spark spark-one">+</span><span className="spark spark-two">+</span></div>
-                <h3>{dragging ? 'Отпустите файл здесь' : 'Перетащите документ сюда'}</h3><p>Положение, инструкция или структура подразделения</p><button className="button primary" disabled={unavailable} onClick={() => input.current?.click()}>{choosing ? <LoaderCircle size={17} className="spin" /> : <Plus size={18} />}Выбрать файл</button><span className="upload-limit">Один файл · до 20 МБ</span>
+                <h3>{dragging ? 'Отпустите файл здесь' : 'Перетащите документ сюда'}</h3><p>Положение, инструкция или структура подразделения</p><button className="button primary" disabled={unavailable} onClick={() => input.current?.click()}>{choosing ? <LoaderCircle size={17} className="spin" /> : <Plus size={18} />}Выбрать файл</button><span className="upload-limit">Один файл · до 20 МБ</span><span className="upload-format-note">Word · PDF с текстом · Excel (.xlsx) · TXT</span>
               </div> : <div className={`selected-file-area ${selected.status === 'error' ? 'has-error' : ''}`}>
                 <div className="selected-file"><FileIcon name={selected.name} /><div className="selected-file-name"><strong>{selected.name}</strong><span>{formatBytes(selected.sizeBytes)} · {selected.name.split('.').pop()?.toUpperCase()} {selected.source === 'example' && '· Учебный пример'}</span></div>{!unavailable && <button className="icon-button" aria-label="Убрать выбранный файл" onClick={() => void removeDocument(selected.id)}><X size={18} /></button>}</div>
                 {busy ? <div className="processing-state" role="status"><span className="processing-symbol"><LoaderCircle className="spin" size={25} /></span><h3>{selected.status === 'uploading' ? 'Отправляем документ' : 'Читаем ваш документ'}</h3><p>{selected.status === 'uploading' ? 'Дождитесь завершения загрузки на сервер.' : 'Извлекаем текст и сохраняем номера пунктов.'}</p><div className={`progress-track ${selected.status === 'processing' ? 'indeterminate' : ''}`} role="progressbar" aria-label="Обработка документа" aria-valuemin={0} aria-valuemax={100} aria-valuenow={selected.status === 'uploading' ? selected.progress : undefined}><span style={selected.status === 'uploading' ? { width: `${selected.progress}%` } : undefined} /></div><button className="text-button" onClick={() => cancel(selected.id)}>Отменить</button></div> : <div className="file-ready"><span className="ready-check">{selected.status === 'error' ? <AlertCircle size={22} /> : <Check size={22} />}</span><h3>{selected.status === 'error' ? 'Не удалось прочитать документ' : 'Документ готов к обработке'}</h3><p>{selected.status === 'error' ? selected.error : 'Отправим файл на сервер и покажем извлечённый текст.'}</p><button className="button primary" disabled={unavailable} onClick={() => void run(() => process(selected))}>{selected.status === 'error' ? 'Повторить попытку' : 'Обработать документ'}<ArrowRight size={17} /></button><button className="text-button" disabled={unavailable} onClick={() => input.current?.click()}>Выбрать другой файл</button></div>}
