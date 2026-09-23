@@ -1,0 +1,63 @@
+.text-repetitions { width: 100%; min-width: 0; }
+.text-repetitions-heading { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px 20px; margin-bottom: 18px; }
+.text-repetitions-heading h2 { font-size: 23px; font-weight: 550; letter-spacing: -.5px; margin-bottom: 9px; }
+.text-repetitions-heading p { color: #728168; font-size: 12px; line-height: 1.8; }
+.text-repetitions-heading .button { min-height: 38px; font-size: 11px; }
+.text-repetitions-note { display: flex; align-items: flex-start; gap: 10px; padding: 15px 17px; margin-bottom: 19px; border: 1px solid #e5e6d8; border-radius: 8px; background: #f5f7ef; color: #6d7a5c; font-size: 12px; line-height: 1.8; }
+.text-repetitions-note > svg { margin-top: 3px; }
+.text-repetitions-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 13px 18px; margin-bottom: 17px; }
+.text-repetitions-sides { display: inline-flex; min-width: 0; padding: 4px; border: 1px solid #e2e8db; background: #f0f4e9; border-radius: 9px; }
+.text-repetitions-sides button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 12px; border-radius: 6px; color: #77856b; font-size: 11px; line-height: 1.4; }
+.text-repetitions-sides button[aria-pressed=true] { color: #466039; background: white; box-shadow: 0 1px 4px #24421412; }
+.text-repetitions-sides button > span { display: inline-flex; justify-content: center; min-width: 20px; padding: 2px 5px; border-radius: 4px; background: #e7eddf; color: #617a4e; font-size: 10px; font-variant-numeric: tabular-nums; }
+.text-repetitions-search { display: flex; align-items: center; gap: 9px; flex: 1 1 220px; min-width: 0; max-width: 340px; min-height: 40px; padding: 0 11px; border: 1px solid #e0e7d9; border-radius: 8px; color: #8b9980; background: white; }
+.text-repetitions-search:focus-within { outline: 3px solid #7ba962; outline-offset: 3px; }
+.text-repetitions-search input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 10px 0; color: var(--ink); font-size: 12px; outline: none; }
+.text-repetitions-search input:focus-visible { outline: none; }
+.text-repetitions-search input::-webkit-search-cancel-button { display: none; }
+.text-repetitions-search button { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 5px; }
+.text-repetitions-search button:hover { background: #edf3e7; }
+.text-repetitions-result-count { margin: 0 0 14px; font-size: 11px; line-height: 1.7; color: #7b8971; }
+.text-repetitions-list { display: flex; flex-direction: column; gap: 17px; }
+.text-repetition-card { padding: 23px; min-width: 0; }
+.text-repetition-card-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px 15px; margin-bottom: 15px; }
+.text-repetition-tag { display: inline-flex; align-items: center; gap: 6px; color: #916839; background: #faf0de; padding: 5px 9px; border-radius: 5px; font-size: 11px; }
+.text-repetition-frequency { color: #8b826a; font-size: 11px; }
+.text-repetition-card h3 { font-size: 17px; line-height: 1.6; font-weight: 550; overflow-wrap: anywhere; margin-bottom: 10px; }
+.text-repetition-document { display: flex; align-items: flex-start; gap: 7px; color: #7c8a71; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+.text-repetition-document > svg { margin-top: 2px; }
+.text-repetition-document > span { min-width: 0; }
+.text-repetition-card blockquote { margin: 19px 0 15px; padding: 15px 17px; background: #fbf7ef; color: #756242; border-left: 3px solid #d8bc86; border-radius: 0 7px 7px 0; font-size: 13px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.text-repetition-description { color: #748268; font-size: 12px; line-height: 1.8; }
+.text-repetition-sources { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 17px; }
+.text-repetition-sources h4 { display: flex; align-items: center; gap: 9px; margin: 0 0 13px; color: #6a7f58; font-size: 12px; font-weight: 500; }
+.text-repetition-sources h4 > span { padding: 2px 6px; border-radius: 4px; background: #edf2e6; color: #81966e; font-size: 10px; }
+.text-repetition-sources ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; list-style: none; margin: 0; padding: 0; }
+.text-repetition-sources li { min-width: 0; }
+.text-repetition-sources button { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; height: 100%; padding: 12px; text-align: left; border: 1px solid #e1e8d9; border-radius: 7px; background: #fcfdf9; color: #6a8655; }
+.text-repetition-sources button:hover { background: #f0f6e8; border-color: #c8d8b6; }
+.text-repetition-occurrence-number { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 25px; height: 25px; border-radius: 50%; background: #edf3e5; color: #7d916b; font-size: 10px; }
+.text-repetition-source-label { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.text-repetition-source-label strong { font-size: 11px; font-weight: 450; line-height: 1.7; }
+.text-repetition-source-label > span { color: #8a9a7b; font-size: 10px; line-height: 1.6; }
+.text-repetitions-state { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 36px 23px; color: #80966d; }
+.text-repetitions-state h3 { font-size: 17px; font-weight: 500; line-height: 1.6; color: #617650; }
+.text-repetitions-state p { max-width: 550px; font-size: 12px; line-height: 1.9; color: #819175; }
+.text-repetitions-state .text-button { font-size: 12px; }
+.text-repetitions-error { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 18px; padding: 14px 16px; border: 1px solid #ecd6cb; border-radius: 8px; color: #9b5d48; background: #fff6ef; font-size: 12px; line-height: 1.8; }
+.text-repetitions-error > svg { margin-top: 2px; }
+@media (max-width: 700px) {
+  .text-repetitions-search { max-width: none; }
+  .text-repetition-sources ol { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .text-repetitions-heading h2 { font-size: 21px; }
+  .text-repetitions-heading .button { white-space: normal; text-align: left; }
+  .text-repetition-card { padding: 17px; }
+  .text-repetition-card h3 { font-size: 16px; }
+  .text-repetition-card blockquote { padding: 13px; font-size: 12px; }
+  .text-repetitions-sides { width: 100%; }
+  .text-repetitions-sides button { flex: 1; padding: 8px; gap: 6px; }
+  .text-repetitions-note { padding: 13px; font-size: 11px; }
+  .text-repetitions-state { padding: 30px 18px; }
+}
