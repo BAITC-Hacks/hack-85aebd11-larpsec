@@ -19,7 +19,16 @@
 .integration-error { margin-bottom: 20px; flex-wrap: wrap; }
 .integration-error .text-button { margin-left: auto; }
 .available-stage { display: flex; align-items: center; gap: 12px; }
+.comparison-workspace { min-width: 0; }
+.comparison-view-tabs { display: flex; gap: 5px; padding: 5px; margin-bottom: 22px; width: fit-content; max-width: 100%; border: 1px solid var(--line); border-radius: 13px; background: #edf0e9; }
+.comparison-view-tabs button { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 12px 17px; border-radius: 9px; color: #67726a; font-size: 13px; font-weight: 500; }
+.comparison-view-tabs button:hover { color: var(--green); background: #f5f7f2; }
+.comparison-view-tabs button.active { color: var(--green); background: white; box-shadow: 0 2px 5px #273b310c; }
+.comparison-view-tabs button > span { padding: 2px 6px; border-radius: 5px; background: #e8eedf; font-size: 11px; }
 @media (max-width: 600px) {
+  .comparison-view-tabs { width: 100%; }
+  .comparison-view-tabs button { flex: 1; padding: 11px 8px; gap: 6px; font-size: 12px; }
+  .comparison-view-tabs button svg { width: 15px; }
   .comparison-controls { padding: 21px 18px; }
   .comparison-actions .button { width: 100%; justify-content: center; white-space: normal; }
   .comparison-control-heading h2 { font-size: 18px; }

@@ -16,6 +16,7 @@ type Props = {
   onAnalyze: () => void;
   onNew: () => void;
   onShow: () => void;
+  onTextDiff: () => void;
   onSample: () => void;
 };
 const stages: Record<string, string> = {
@@ -40,6 +41,7 @@ export function ComparisonControls(props: Props) {
     {active && <div className="analysis-progress" role="status"><LoaderCircle className="spin" size={18} /><span>{stages[comparison.stage] || 'Обработка'} · {comparison.progress}%</span><progress aria-label="Прогресс сравнения" max={100} value={comparison.progress} /></div>}
     {comparison?.error && <div className="inline-error" role="alert"><p>{comparison.error.message}</p></div>}
     <div className="comparison-actions">
+      {count('before') > 0 && count('after') > 0 && <button className="button secondary" onClick={props.onTextDiff}><GitCompareArrows size={17} />Сравнить текст</button>}
       {result ? <button className="button primary" onClick={props.onShow}>Открыть результаты <ArrowRight size={17} /></button> : !active && <button className="button primary" disabled={disabled || !canAnalyze} onClick={props.onAnalyze}>{loading ? <LoaderCircle className="spin" size={17} /> : <GitCompareArrows size={17} />}{comparison?.status === 'failed' ? 'Повторить сравнение' : 'Запустить сравнение'}</button>}
       {!documents.length && !frozen && <button className="button secondary" disabled={disabled} onClick={props.onSample}><Sparkles size={17} />Загрузить пример «до/после»</button>}
       {health?.mode === 'demo' && <p className="comparison-hint">Демо: сервер сравнивает явные формулировки по правилам. Для смыслового ИИ-анализа подключите модель в настройках сервера.</p>}

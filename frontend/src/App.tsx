@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, FileCheck2, FileText, Files, GitCompareArrows, Layers3, LoaderCircle, LockKeyhole, Plus, Search, ShieldCheck, Sparkles, Trash2, Upload, X, AlertCircle, BookOpen, List, PanelLeftClose } from 'lucide-react';
 import ComparisonResults from './ComparisonResults';
+import DocumentDiff from './DocumentDiff';
 import { ConnectionSettings } from './ConnectionSettings';
 import { ComparisonControls } from './ComparisonControls';
 import { DOCX_MIME, downloadText, formatBytes, plural } from './lib/documents';
@@ -33,7 +34,7 @@ function Guide({ onClose }: { onClose: () => void }) {
     <ol className="guide-steps">
       <li><span>01</span><div><strong>Выберите документы до и после</strong><p>DOCX, PDF с текстовым слоем или XLSX. По одному файлу размером до 20 МБ. Для сканов нужно распознавание текста.</p></div></li>
       <li><span>02</span><div><strong>Укажите версию и запустите обработку</strong><p>Сервер сохранит документ, извлечёт текст и номера пунктов. Загрузите оба комплекта документов.</p></div></li>
-      <li><span>03</span><div><strong>Запустите сравнение</strong><p>Укажите полноту комплектов и нажмите «Запустить сравнение». Проверьте выводы по источникам и скачайте отчёт.</p></div></li>
+      <li><span>03</span><div><strong>Сравните версии</strong><p>Откройте «Сравнить текст»: слева будет документ до изменений, справа — после. Удалённые строки выделены красным, добавленные — зелёным. Для анализа функций укажите полноту комплектов и нажмите «Запустить сравнение».</p></div></li>
     </ol>
     <div className="notice"><ShieldCheck size={19} /><p>Документы отправляются на сервер при обработке. Загруженные документы и результаты сохраняются; последнее сравнение открывается после обновления страницы. Выбранные, но не отправленные файлы нужно выбрать заново.</p></div>
     <button className="button primary full-width" onClick={() => dialog.current?.close()}>Всё понятно <ArrowRight size={17} /></button>
@@ -69,7 +70,7 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
       <aside className="result-aside">
         <div className="panel document-summary"><span className="eyebrow">О ДОКУМЕНТЕ</span><h3>Всё на своём месте</h3><dl><div><dt>Фрагменты</dt><dd>{result.paragraphs.length}</dd></div><div><dt>Нумерованные пункты</dt><dd>{sections.length}</dd></div><div><dt>Символы</dt><dd>{result.text.length.toLocaleString('ru-RU')}</dd></div><div><dt>Версия</dt><dd>{phaseLabels[doc.phase]}</dd></div></dl></div>
         <div className="reading-note"><BookOpen size={21} /><h3>Сохраняем смысл источника</h3><p>Фрагменты и адреса источников получены с сервера. Для PDF указаны страницы, для таблиц — листы и ячейки.</p><p>Таблицы отображаются как текст. Для проверки оформления используйте оригинал.</p></div>
-        <div className="next-step"><span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП</span><GitCompareArrows size={23} /><h3>Сравнение функций</h3><p>Загрузите документы до и после изменений, чтобы найти потери, дублирование и конфликты функций.</p><button className="text-button" onClick={onCompare}>К сравнению <ArrowRight size={16} /></button></div>
+        <div className="next-step"><span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП</span><GitCompareArrows size={23} /><h3>Сравнение версий</h3><p>Откройте документы рядом, чтобы увидеть удалённые и добавленные строки. Затем можно перейти к анализу функций.</p><button className="text-button" onClick={onCompare}>К сравнению <ArrowRight size={16} /></button></div>
       </aside>
     </div>
   </section>;
@@ -78,6 +79,7 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
 export default function App() {
   const { documents, add, process, cancel, remove, update, comparison, result, health, loading, error: serverError, locked, analyze, newComparison, refresh } = useDocuments();
   const [view, setView] = useState<'documents' | 'comparison'>('documents');
+  const [comparisonView, setComparisonView] = useState<'text' | 'analysis'>('text');
   const [working, setWorking] = useState(false);
   const [beforeComplete, setBeforeComplete] = useState(false);
   const [afterComplete, setAfterComplete] = useState(false);
@@ -129,6 +131,8 @@ export default function App() {
   };
 
   const newDocument = () => { setView('documents'); setSelectedId(null); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const showTextComparison = () => { setComparisonView('text'); setView('comparison'); setSelectedId(null); };
+  const showAnalysis = () => { setComparisonView('analysis'); setView('comparison'); setSelectedId(null); };
   const selectDocument = (doc: WorkspaceDocument) => { setView('documents'); setSelectedId(doc.id); setPhase(doc.phase); setError(''); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const run = async (action: () => Promise<void>) => {
@@ -138,8 +142,8 @@ export default function App() {
     finally { setWorking(false); }
   };
   const removeDocument = (id: string) => run(async () => { await remove(id); if (selectedId === id) setSelectedId(null); });
-  const startNew = () => run(async () => { await newComparison(); setSelectedId(null); setView('documents'); setBeforeComplete(false); setAfterComplete(false); });
-  const startAnalysis = () => run(async () => { await analyze(beforeComplete, afterComplete); setSelectedId(null); setView('comparison'); });
+  const startNew = () => run(async () => { await newComparison(); setSelectedId(null); setView('documents'); setComparisonView('text'); setBeforeComplete(false); setAfterComplete(false); });
+  const startAnalysis = () => run(async () => { await analyze(beforeComplete, afterComplete); showAnalysis(); });
   const samplePair = () => run(async () => {
     for (const side of ['before', 'after'] as const) {
       const response = await fetch(`/examples/${side}.docx`);
@@ -147,7 +151,7 @@ export default function App() {
       const doc = await add(new File([await response.blob()], `${side}.docx`, { type: DOCX_MIME }), side, true);
       await process(doc);
     }
-    setSelectedId(null); setBeforeComplete(true); setAfterComplete(true); setView('comparison');
+    setBeforeComplete(true); setAfterComplete(true); showTextComparison();
   });
 
   return <div className="app-shell">
@@ -162,10 +166,16 @@ export default function App() {
     <div className="main-shell">
       <header className="topbar"><div className="breadcrumb"><PanelLeftClose size={18} /><span>Рабочее пространство</span><ChevronRight size={14} /><strong>{view === 'comparison' ? 'Сравнение' : 'Документы'}</strong></div><div className="topbar-right"><span className="event-tag">HACKALEM <span>AI</span></span><span className="header-divider" /><span className="avatar small-avatar">L</span></div></header>
       <main id="main">
-        <div className="page-heading"><div><span className="eyebrow">АНАЛИЗ ОРГАНИЗАЦИОННОЙ СТРУКТУРЫ</span><h1>{view === 'comparison' ? 'Сравнение' : 'Документы'}<span className="heading-period">.</span></h1><p>Порядок в документах — первый шаг к ясной структуре.</p></div><span className="mode-label"><span className="mode-dot" />{health ? health.mode === 'demo' ? 'Демонстрационный анализ' : 'ИИ-анализ на сервере' : 'Подключение к серверу'}</span></div>
+        <div className="page-heading"><div><span className="eyebrow">АНАЛИЗ ОРГАНИЗАЦИОННОЙ СТРУКТУРЫ</span><h1>{view === 'comparison' ? 'Сравнение' : 'Документы'}<span className="heading-period">.</span></h1><p>{view === 'comparison' && comparisonView === 'text' ? 'Две версии рядом. Каждое изменение на своём месте.' : 'Порядок в документах — первый шаг к ясной структуре.'}</p></div><span className="mode-label"><span className="mode-dot" />{view === 'comparison' && comparisonView === 'text' ? 'Сравнение текста' : health ? health.mode === 'demo' ? 'Демонстрационный анализ' : 'ИИ-анализ на сервере' : 'Подключение к серверу'}</span></div>
         {(error || serverError || (!health && !loading)) && <div className="inline-error integration-error" role="alert"><AlertCircle size={18} /><p>{error || serverError || 'Не удалось определить режим сервера. Повторите подключение.'}</p><button className="text-button" onClick={() => void run(refresh)}>Повторить подключение</button></div>}
-        <ComparisonControls comparison={comparison} documents={documents} health={health} result={result} disabled={unavailable} loading={loading || working} beforeComplete={beforeComplete} afterComplete={afterComplete} setBeforeComplete={setBeforeComplete} setAfterComplete={setAfterComplete} onAnalyze={() => void startAnalysis()} onNew={() => void startNew()} onShow={() => setView('comparison')} onSample={() => void samplePair()} />
-        {view === 'comparison' ? result && comparison ? <ComparisonResults comparison={comparison} result={result} onRefresh={refresh} /> : <section className="comparison-empty panel"><GitCompareArrows size={30} /><h2>{locked ? 'Сервер обрабатывает документы' : 'Подготовьте комплекты до и после'}</h2><p>{locked ? 'Статус обновляется автоматически. Можно обновить страницу — обработка продолжится на сервере.' : 'Загрузите документы обеих версий, проверьте текст и запустите сравнение кнопкой выше.'}</p><button className="button secondary" onClick={newDocument}>К документам <ArrowRight size={16} /></button></section> : selected?.status === 'ready' && selected.result ? <ResultView key={selected.id} doc={selected} onBack={newDocument} onCompare={() => setView('comparison')} /> : selected?.status === 'error' && selected.serverId ? <section className="comparison-empty panel"><h2>Не удалось загрузить текст</h2><p>{selected.error}</p><button className="button secondary" disabled={busy || working || loading} onClick={() => void run(() => process(selected))}>Повторить загрузку текста</button></section> : locked ? <div className="notice"><LockKeyhole size={18} /><p>Комплект зафиксирован для анализа. Документы доступны в списке ниже. Для загрузки других файлов создайте новое сравнение.</p></div> : <>
+        <ComparisonControls comparison={comparison} documents={documents} health={health} result={result} disabled={unavailable} loading={loading || working} beforeComplete={beforeComplete} afterComplete={afterComplete} setBeforeComplete={setBeforeComplete} setAfterComplete={setAfterComplete} onAnalyze={() => void startAnalysis()} onNew={() => void startNew()} onShow={showAnalysis} onTextDiff={showTextComparison} onSample={() => void samplePair()} />
+        {view === 'comparison' ? <div className="comparison-workspace">
+          <div className="comparison-view-tabs" role="group" aria-label="Режим сравнения">
+            <button type="button" className={comparisonView === 'text' ? 'active' : ''} aria-pressed={comparisonView === 'text'} onClick={() => setComparisonView('text')}><FileText size={18} />Текст до / после</button>
+            <button type="button" className={comparisonView === 'analysis' ? 'active' : ''} aria-pressed={comparisonView === 'analysis'} onClick={() => setComparisonView('analysis')}><GitCompareArrows size={18} />Анализ функций{result && <span>{result.findings.length}</span>}</button>
+          </div>
+          {comparisonView === 'text' ? <DocumentDiff key={comparison?.id || 'empty'} documents={documents} onDocuments={newDocument} /> : result && comparison ? <ComparisonResults comparison={comparison} result={result} onRefresh={refresh} /> : <section className="comparison-empty panel"><GitCompareArrows size={30} /><h2>{locked ? 'Сервер обрабатывает документы' : 'Анализ функций ещё не запущен'}</h2><p>{locked ? 'Статус обновляется автоматически. Можно обновить страницу — обработка продолжится на сервере.' : 'Загрузите документы обеих версий и запустите сравнение кнопкой выше. Подсветка изменений текста уже доступна в соседней вкладке.'}</p><button className="button secondary" onClick={newDocument}>К документам <ArrowRight size={16} /></button></section>}
+        </div> : selected?.status === 'ready' && selected.result ? <ResultView key={selected.id} doc={selected} onBack={newDocument} onCompare={showTextComparison} /> : selected?.status === 'error' && selected.serverId ? <section className="comparison-empty panel"><h2>Не удалось загрузить текст</h2><p>{selected.error}</p><button className="button secondary" disabled={busy || working || loading} onClick={() => void run(() => process(selected))}>Повторить загрузку текста</button></section> : locked ? <div className="notice"><LockKeyhole size={18} /><p>Комплект зафиксирован для анализа. Документы доступны в списке ниже. Для загрузки других файлов создайте новое сравнение.</p></div> : <>
           <div className="upload-layout">
             <section className="upload-panel panel" aria-labelledby="upload-title">
               <div className="panel-heading"><div><span className="step-number">01</span><h2 id="upload-title">Загрузите документ</h2></div><span className="file-type-pill">DOCX · PDF · XLSX</span></div>
