@@ -1,0 +1,410 @@
+/* Results, source dialogs and integration controls. Light styles stay intact. */
+:root[data-theme='dark'] :is(
+  .analysis-results, .analysis-source-dialog, .document-diff,
+  .text-repetitions, .comparison-controls, .comparison-empty, .history-card
+) {
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] :where(
+  .finding-filters label, .analysis-stat span, .analysis-tabs button,
+  .analysis-review-status, .analysis-explanation, .analysis-review label,
+  .analysis-empty p, .analysis-change-number, .analysis-mapping h3,
+  .analysis-function-detail p, .analysis-function-detail p > span,
+  .analysis-missing, .analysis-source-note, .document-diff-heading p,
+  .document-diff-selectors label, .document-diff-selectors > p,
+  .document-diff-stat > span, .document-diff-filter,
+  .document-diff-navigation > span, .document-diff-legend,
+  .document-diff-table th > span:last-child, .document-diff-line-number,
+  .document-diff-pagination > p, .document-diff-page-controls,
+  .document-diff-footnote, .document-diff-state p, .document-diff-mobile-hint,
+  .text-repetitions-heading p, .text-repetitions-result-count,
+  .text-repetition-frequency, .text-repetition-document,
+  .text-repetition-description, .text-repetition-source-label > span,
+  .text-repetitions-state p, .comparison-hint, .comparison-empty p,
+  .connection-settings, .history-documents, .history-loading
+) {
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-empty h3, .document-diff-state h3, .text-repetitions-state h3,
+  .document-diff-stat > strong, .document-diff-line-text
+) {
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-mode, .analysis-recommendation p, .analysis-evidence summary,
+  .analysis-empty, .analysis-mapping-arrow, .analysis-source-dialog h3,
+  .analysis-source-loading, .document-diff-side-label, .document-diff-state,
+  .document-diff-filter-empty, .text-repetition-sources h4,
+  .text-repetitions-state
+) {
+  color: var(--accent-text);
+}
+
+/* Form surfaces include their native popup menus. */
+:root[data-theme='dark'] :is(
+  .finding-filters select, .finding-filters option,
+  .analysis-review textarea, .connection-settings input,
+  .document-diff-selectors select, .document-diff-selectors option,
+  .document-diff-page-controls select, .document-diff-page-controls option
+) {
+  color-scheme: dark;
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-review textarea, .connection-settings input, .text-repetitions-search input
+)::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+:root[data-theme='dark'] :is(
+  .finding-functions, .analysis-recommendation, .analysis-source-text
+) {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] .analysis-stat {
+  border-top-color: var(--success-line);
+}
+
+:root[data-theme='dark'] .analysis-stat:hover {
+  background: var(--surface-hover);
+}
+
+:root[data-theme='dark'] .analysis-stat[aria-pressed=true] {
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px var(--green);
+}
+
+:root[data-theme='dark'] .analysis-stat.stat-potential_loss {
+  border-top-color: var(--warning-text);
+}
+
+:root[data-theme='dark'] .analysis-stat.stat-conflict {
+  border-top-color: var(--danger-text);
+}
+
+:root[data-theme='dark'] .analysis-stat.stat-coverage_gap {
+  border-top-color: var(--muted);
+}
+
+:root[data-theme='dark'] .analysis-stat.stat-repetitions {
+  border-top-color: var(--info-text);
+}
+
+:root[data-theme='dark'] .analysis-tabs button[aria-pressed=true] {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-tabs button > span, .analysis-filter-heading h3 > span,
+  .analysis-tag, .analysis-function-kind
+) {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-tag.tag-potential_loss, .analysis-tag.tag-duplication,
+  .analysis-tag.tag-modified, .text-repetition-tag
+) {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-tag.tag-conflict, .analysis-function-kind.kind-prohibition
+) {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-tag.tag-coverage_gap, .analysis-tag.tag-unmatched
+) {
+  background: var(--surface-raised);
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] .analysis-function-kind.kind-permission {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+:root[data-theme='dark'] :is(
+  .coverage-complete, .analysis-review-status.review-confirmed, .analysis-save-state
+) {
+  color: var(--success-text);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-mode.example-notice, .coverage-incomplete,
+  .analysis-summary .analysis-coverage-note, .analysis-review-status.review-dismissed
+) {
+  color: var(--warning-text);
+}
+
+:root[data-theme='dark'] :is(
+  .analysis-warnings, .document-diff-warnings, .preview-caution
+) {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+}
+
+:root[data-theme='dark'] :is(
+  .document-diff-warnings .text-button, .preview-caution strong, .preview-caution p
+) {
+  color: var(--warning-text);
+}
+
+:root[data-theme='dark'] :is(.preview-caution .success-icon, .preview-caution .complete-badge) {
+  background: var(--surface-raised);
+  color: var(--warning-text);
+}
+
+:root[data-theme='dark'] :is(.analysis-error, .analysis-source-error, .document-diff-state[role=alert] > svg) {
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] .analysis-evidence-item blockquote {
+  color: var(--ink);
+  border-left-color: var(--green);
+}
+
+:root[data-theme='dark'] .analysis-source-dialog {
+  background: var(--surface-raised);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+  color-scheme: dark;
+}
+
+:root[data-theme='dark'] .analysis-source-dialog::backdrop {
+  background: rgb(3 10 6 / 75%);
+}
+
+:root[data-theme='dark'] .analysis-source-text mark {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+/* Text comparison keeps addition/removal meaning in both themes. */
+:root[data-theme='dark'] :is(.document-diff-stat, .document-diff-icon-button, .document-diff-viewport) {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] .document-diff-icon-button {
+  color: var(--accent-text);
+}
+
+:root[data-theme='dark'] .document-diff-icon-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+:root[data-theme='dark'] .document-diff-stat-modified {
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+}
+
+:root[data-theme='dark'] .document-diff-stat-modified > :is(strong, span) {
+  color: var(--warning-text);
+}
+
+:root[data-theme='dark'] .document-diff-stat-removed {
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+}
+
+:root[data-theme='dark'] .document-diff-stat-added {
+  background: var(--success-bg);
+  border-color: var(--success-line);
+}
+
+:root[data-theme='dark'] :is(
+  .document-diff-stat-removed > strong, .document-diff-stat-removed > span,
+  .document-diff-legend-removed
+) {
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] :is(
+  .document-diff-stat-added > strong, .document-diff-stat-added > span,
+  .document-diff-legend-added
+) {
+  color: var(--success-text);
+}
+
+:root[data-theme='dark'] .document-diff-identical {
+  color: var(--success-text);
+  background: var(--success-bg);
+  border-color: var(--success-line);
+}
+
+:root[data-theme='dark'] .document-diff-no-text {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-color: var(--warning-line);
+}
+
+:root[data-theme='dark'] .document-diff-table th {
+  background: var(--surface-raised);
+  box-shadow: 0 1px var(--line);
+}
+
+:root[data-theme='dark'] .document-diff-table th > span:last-child {
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] :is(.document-diff-table th + th, .document-diff-table td + td) {
+  border-left-color: var(--line);
+}
+
+:root[data-theme='dark'] .document-diff-table td {
+  border-bottom-color: var(--line);
+}
+
+:root[data-theme='dark'] .document-diff-cell-removed {
+  background: var(--danger-bg);
+}
+
+:root[data-theme='dark'] .document-diff-cell-removed :is(.document-diff-sign, .document-diff-line-text) {
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] .document-diff-cell-removed mark {
+  background: var(--diff-removed-mark);
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] .document-diff-cell-added {
+  background: var(--success-bg);
+}
+
+:root[data-theme='dark'] .document-diff-cell-added :is(.document-diff-sign, .document-diff-line-text) {
+  color: var(--success-text);
+}
+
+:root[data-theme='dark'] .document-diff-cell-added mark {
+  background: var(--diff-added-mark);
+  color: var(--success-text);
+}
+
+:root[data-theme='dark'] .document-diff-cell-empty {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--surface-soft),
+    var(--surface-soft) 5px,
+    var(--surface-raised) 5px,
+    var(--surface-raised) 6px
+  );
+}
+
+:root[data-theme='dark'] .document-diff-row-active td {
+  box-shadow: inset 0 2px var(--green), inset 0 -2px var(--green);
+}
+
+/* Repeated passages and their source buttons. */
+:root[data-theme='dark'] .text-repetitions-note {
+  color: var(--info-text);
+  background: var(--info-bg);
+  border-color: var(--info-line);
+}
+
+:root[data-theme='dark'] :is(.text-repetitions-sides, .comparison-view-tabs) {
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] :is(.text-repetitions-sides button, .comparison-view-tabs button) {
+  color: var(--muted);
+}
+
+:root[data-theme='dark'] :is(.text-repetitions-sides button[aria-pressed=true], .comparison-view-tabs button.active) {
+  color: var(--accent-text);
+  background: var(--surface-raised);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 22%);
+}
+
+:root[data-theme='dark'] :is(
+  .text-repetitions-sides button > span, .text-repetition-sources h4 > span,
+  .text-repetition-occurrence-number, .comparison-view-tabs button > span
+) {
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+:root[data-theme='dark'] .text-repetitions-search {
+  color: var(--muted);
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] :is(.text-repetitions-search button:hover, .comparison-view-tabs button:hover) {
+  color: var(--accent-text);
+  background: var(--surface-hover);
+}
+
+:root[data-theme='dark'] .text-repetition-card blockquote {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-left-color: var(--warning-text);
+}
+
+:root[data-theme='dark'] .text-repetition-sources button {
+  color: var(--accent-text);
+  background: var(--surface-soft);
+  border-color: var(--line);
+}
+
+:root[data-theme='dark'] .text-repetition-sources button:hover {
+  background: var(--surface-hover);
+  border-color: var(--green);
+}
+
+:root[data-theme='dark'] .text-repetitions-error {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+}
+
+:root[data-theme='dark'] .integration-error .text-button {
+  color: var(--danger-text);
+}
+
+:root[data-theme='dark'] .analysis-progress progress {
+  background: var(--surface-soft);
+  color: var(--green);
+}
+
+:root[data-theme='dark'] .analysis-progress progress::-webkit-progress-bar {
+  background: var(--surface-soft);
+}
+
+:root[data-theme='dark'] .analysis-progress progress::-webkit-progress-value {
+  background: var(--green);
+}
+
+:root[data-theme='dark'] .analysis-progress progress::-moz-progress-bar {
+  background: var(--green);
+}
+
+/* Preserve existing focus widths/offsets with a visible dark-theme accent. */
+:root[data-theme='dark'] :is(
+  .analysis-stat:focus-visible, .analysis-content:focus-visible,
+  .analysis-review textarea:focus-visible, .analysis-source-dialog :focus-visible,
+  .analysis-results summary:focus-visible, .document-diff summary:focus-visible,
+  .document-diff-viewport:focus-visible, .document-diff-row:focus,
+  .text-repetitions-search:focus-within
+) {
+  outline-color: var(--green);
+}

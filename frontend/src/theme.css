@@ -1,0 +1,99 @@
+@import './theme-layout.css';
+@import './theme-results.css';
+
+:root {
+  color-scheme: light;
+  --bg: #f7f8f5;
+  --surface: #fff;
+  --surface-raised: #f2f5ee;
+  --surface-soft: #f7f9f3;
+  --surface-hover: #edf3e7;
+  --faint: #8a9784;
+  --accent-soft: #eef4e8;
+  --accent-text: #617e4e;
+  --button-bg: #2a4c3f;
+  --button-fg: #fff;
+  --warning-bg: #fff7ec;
+  --warning-text: #866d46;
+  --warning-line: #ece0cd;
+  --danger-bg: #fff1ed;
+  --danger-text: #974a3e;
+  --danger-line: #edd7d0;
+  --success-bg: #eef8e8;
+  --success-text: #3c682c;
+  --success-line: #d6e5cb;
+  --info-bg: #edf4f7;
+  --info-text: #5a7b8c;
+  --info-line: #c5dbe7;
+  --shadow: 0 12px 32px #173d2410;
+  --diff-removed-mark: #f3c8bd;
+  --diff-added-mark: #cde9b9;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #101714;
+  --surface: #18221d;
+  --surface-raised: #202e26;
+  --surface-soft: #1c2821;
+  --surface-hover: #2a3b2f;
+  --green: #b5d79f;
+  --ink: #e5eee7;
+  --muted: #abb9ad;
+  --faint: #8c9f90;
+  --line: #34463b;
+  --lime: #c8e1ad;
+  --accent-soft: #26392c;
+  --accent-text: #acd79b;
+  --button-bg: #b5d79f;
+  --button-fg: #102014;
+  --warning-bg: #30291d;
+  --warning-text: #e9c58c;
+  --warning-line: #625033;
+  --danger-bg: #34211f;
+  --danger-text: #ffb1a4;
+  --danger-line: #6d4339;
+  --success-bg: #1d3325;
+  --success-text: #b1dfa5;
+  --success-line: #3d6145;
+  --info-bg: #1d2e37;
+  --info-text: #a9d2e6;
+  --info-line: #3b5b6c;
+  --shadow: 0 12px 32px #00000035;
+  --diff-removed-mark: #743f37;
+  --diff-added-mark: #365f39;
+}
+
+body { background: var(--bg); }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: var(--surface-hover); }
+.theme-toggle:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .theme-toggle { width: 38px; padding: 8px; }
+  .theme-toggle > span { display: none; }
+}
+@media (max-width: 600px) {
+  .topbar-right { gap: 8px; }
+  .topbar-right .header-divider, .topbar-right .small-avatar { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle { transition: none; }
+}
