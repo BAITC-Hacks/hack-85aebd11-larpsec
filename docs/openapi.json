@@ -1,0 +1,1735 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Larpsec — анализ организационных изменений",
+    "description": "Комплекты до/после, функции, потенциальные отклонения и проверяемые источники.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons": {
+      "post": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Create Comparison",
+        "operationId": "create_comparison_api_v1_comparisons_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateComparison"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "List Comparisons",
+        "operationId": "list_comparisons_api_v1_comparisons_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comparison"
+                  },
+                  "title": "Response List Comparisons Api V1 Comparisons Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}": {
+      "get": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Get Comparison",
+        "operationId": "get_comparison_api_v1_comparisons__comparison_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/coverage": {
+      "patch": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Update Coverage",
+        "operationId": "update_coverage_api_v1_comparisons__comparison_id__coverage_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverageUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/documents": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Upload Document",
+        "operationId": "upload_document_api_v1_comparisons__comparison_id__documents_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "before",
+                "after"
+              ],
+              "type": "string",
+              "title": "Side"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_v1_comparisons__comparison_id__documents_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/documents/{document_id}/fragments": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Fragments",
+        "operationId": "get_fragments_api_v1_comparisons__comparison_id__documents__document_id__fragments_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Fragment"
+                  },
+                  "title": "Response Get Fragments Api V1 Comparisons  Comparison Id  Documents  Document Id  Fragments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/sources/{fragment_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Source",
+        "operationId": "get_source_api_v1_comparisons__comparison_id__sources__fragment_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "fragment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Fragment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fragment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/documents/{document_id}/download": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Download Document",
+        "operationId": "download_document_api_v1_comparisons__comparison_id__documents__document_id__download_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/documents/{document_id}": {
+      "delete": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Remove Document",
+        "operationId": "remove_document_api_v1_comparisons__comparison_id__documents__document_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/analyze": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Start Analysis",
+        "operationId": "start_analysis_api_v1_comparisons__comparison_id__analyze_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/result": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Get Result",
+        "operationId": "get_result_api_v1_comparisons__comparison_id__result_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/findings/{finding_id}/review": {
+      "patch": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Review Finding",
+        "operationId": "review_finding_api_v1_comparisons__comparison_id__findings__finding_id__review_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Finding Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Review"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/comparisons/{comparison_id}/report": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Download Report",
+        "operationId": "download_report_api_v1_comparisons__comparison_id__report_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "markdown",
+                "json"
+              ],
+              "type": "string",
+              "default": "markdown",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_upload_document_api_v1_comparisons__comparison_id__documents_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "Один DOCX, PDF или XLSX"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_api_v1_comparisons__comparison_id__documents_post"
+      },
+      "Comparison": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "before_complete": {
+            "type": "boolean",
+            "title": "Before Complete"
+          },
+          "after_complete": {
+            "type": "boolean",
+            "title": "After Complete"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "queued",
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "demo",
+                  "llm"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Problem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "before_complete",
+          "after_complete",
+          "status",
+          "stage",
+          "progress",
+          "mode",
+          "error",
+          "created_at",
+          "updated_at",
+          "documents"
+        ],
+        "title": "Comparison"
+      },
+      "CoverageUpdate": {
+        "properties": {
+          "before_complete": {
+            "type": "boolean",
+            "title": "Before Complete"
+          },
+          "after_complete": {
+            "type": "boolean",
+            "title": "After Complete"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "before_complete",
+          "after_complete"
+        ],
+        "title": "CoverageUpdate"
+      },
+      "CreateComparison": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "default": "Анализ реорганизации"
+          },
+          "before_complete": {
+            "type": "boolean",
+            "title": "Before Complete",
+            "default": false
+          },
+          "after_complete": {
+            "type": "boolean",
+            "title": "After Complete",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CreateComparison"
+      },
+      "Document": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "comparison_id": {
+            "type": "string",
+            "title": "Comparison Id"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "format": {
+            "type": "string",
+            "title": "Format"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
+          "text_chars": {
+            "type": "integer",
+            "title": "Text Chars"
+          },
+          "fragment_count": {
+            "type": "integer",
+            "title": "Fragment Count"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "extraction_complete": {
+            "type": "boolean",
+            "title": "Extraction Complete"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "comparison_id",
+          "side",
+          "filename",
+          "format",
+          "sha256",
+          "size_bytes",
+          "text_chars",
+          "fragment_count",
+          "warnings",
+          "extraction_complete",
+          "created_at"
+        ],
+        "title": "Document"
+      },
+      "Evidence": {
+        "properties": {
+          "fragment_id": {
+            "type": "string",
+            "title": "Fragment Id"
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Quote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fragment_id",
+          "quote"
+        ],
+        "title": "Evidence"
+      },
+      "Finding": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "potential_loss",
+              "duplication",
+              "conflict",
+              "coverage_gap"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "function_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Function Ids"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "review_required": {
+            "type": "boolean",
+            "title": "Review Required",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "explanation",
+          "recommendation",
+          "function_ids",
+          "evidence"
+        ],
+        "title": "Finding"
+      },
+      "Fragment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "locator": {
+            "type": "string",
+            "title": "Locator"
+          },
+          "clause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clause"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "sheet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sheet"
+          },
+          "cell_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cell Range"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "text",
+          "locator"
+        ],
+        "title": "Fragment"
+      },
+      "Function": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Owner"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "title": "Object"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "duty",
+              "permission",
+              "prohibition"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Evidence"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "unit_id": {
+            "type": "string",
+            "title": "Unit Id"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "owner",
+          "action",
+          "object",
+          "scope",
+          "kind",
+          "evidence",
+          "id",
+          "unit_id",
+          "side"
+        ],
+        "title": "Function"
+      },
+      "FunctionChange": {
+        "properties": {
+          "before_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Id"
+          },
+          "after_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "After Ids"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preserved",
+              "moved",
+              "modified",
+              "potential_loss",
+              "unmatched",
+              "added"
+            ],
+            "title": "Status"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "before_id",
+          "after_ids",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "title": "FunctionChange"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "llm"
+            ],
+            "title": "Mode"
+          },
+          "analysis_ready": {
+            "type": "boolean",
+            "title": "Analysis Ready"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "mode",
+          "analysis_ready",
+          "version"
+        ],
+        "title": "Health"
+      },
+      "Problem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Problem"
+      },
+      "Reporting": {
+        "properties": {
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "supervisor": {
+            "type": "string",
+            "title": "Supervisor"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "functional",
+              "administrative",
+              "unspecified"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Evidence"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "subject",
+          "supervisor",
+          "kind",
+          "evidence",
+          "side"
+        ],
+        "title": "Reporting"
+      },
+      "Result": {
+        "properties": {
+          "comparison_id": {
+            "type": "string",
+            "title": "Comparison Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "llm"
+            ],
+            "title": "Mode"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version"
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/Unit"
+            },
+            "type": "array",
+            "title": "Units"
+          },
+          "functions": {
+            "items": {
+              "$ref": "#/components/schemas/Function"
+            },
+            "type": "array",
+            "title": "Functions"
+          },
+          "reporting": {
+            "items": {
+              "$ref": "#/components/schemas/Reporting"
+            },
+            "type": "array",
+            "title": "Reporting"
+          },
+          "unit_changes": {
+            "items": {
+              "$ref": "#/components/schemas/UnitChange"
+            },
+            "type": "array",
+            "title": "Unit Changes"
+          },
+          "function_changes": {
+            "items": {
+              "$ref": "#/components/schemas/FunctionChange"
+            },
+            "type": "array",
+            "title": "Function Changes"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "coverage": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Coverage"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewRecord"
+            },
+            "type": "array",
+            "title": "Reviews",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "comparison_id",
+          "mode",
+          "model",
+          "prompt_version",
+          "generated_at",
+          "units",
+          "functions",
+          "reporting",
+          "unit_changes",
+          "function_changes",
+          "findings",
+          "warnings",
+          "coverage",
+          "summary"
+        ],
+        "title": "Result"
+      },
+      "Review": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "unreviewed",
+              "confirmed",
+              "dismissed"
+            ],
+            "title": "Status"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Comment",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Review"
+      },
+      "ReviewRecord": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "unreviewed",
+              "confirmed",
+              "dismissed"
+            ],
+            "title": "Status"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Comment",
+            "default": ""
+          },
+          "finding_id": {
+            "type": "string",
+            "title": "Finding Id"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "finding_id",
+          "updated_at"
+        ],
+        "title": "ReviewRecord"
+      },
+      "Unit": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "department",
+              "role",
+              "group"
+            ],
+            "title": "Kind"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Evidence"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "aliases",
+          "evidence",
+          "id",
+          "side"
+        ],
+        "title": "Unit"
+      },
+      "UnitChange": {
+        "properties": {
+          "before_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Before Ids"
+          },
+          "after_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "After Ids"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preserved",
+              "renamed",
+              "merged",
+              "split",
+              "reorganized",
+              "created",
+              "unmatched"
+            ],
+            "title": "Status"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "before_ids",
+          "after_ids",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "title": "UnitChange"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

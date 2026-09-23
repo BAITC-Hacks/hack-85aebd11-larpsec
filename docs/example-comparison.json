@@ -1,0 +1,43 @@
+{
+  "id": "c177eaa2810a47bf82333b0d87dedec9",
+  "title": "Учебная реорганизация БВА",
+  "before_complete": true,
+  "after_complete": true,
+  "status": "completed",
+  "stage": "completed",
+  "progress": 100,
+  "mode": "demo",
+  "error": null,
+  "created_at": "2026-09-23T09:17:50.244308+00:00",
+  "updated_at": "2026-09-23T09:17:50.378985+00:00",
+  "documents": [
+    {
+      "id": "908f1f6481b14dba834a6698b8e1b0b1",
+      "comparison_id": "c177eaa2810a47bf82333b0d87dedec9",
+      "side": "before",
+      "filename": "before.docx",
+      "format": "docx",
+      "sha256": "d7cef77fac8413cb25bdd0ab6e2276e452813d0aef63aca52b3818117a1ef895",
+      "size_bytes": 37280,
+      "text_chars": 855,
+      "fragment_count": 17,
+      "warnings": [],
+      "extraction_complete": true,
+      "created_at": "2026-09-23T09:17:50.284849+00:00"
+    },
+    {
+      "id": "dc8ff2f2397c44899c8c352a27a0823d",
+      "comparison_id": "c177eaa2810a47bf82333b0d87dedec9",
+      "side": "after",
+      "filename": "after.docx",
+      "format": "docx",
+      "sha256": "3cc38239e514c4a07fcd62b94593d0aacdda8c249d7ce619648be98fc94ecd39",
+      "size_bytes": 37358,
+      "text_chars": 1051,
+      "fragment_count": 21,
+      "warnings": [],
+      "extraction_complete": true,
+      "created_at": "2026-09-23T09:17:50.321074+00:00"
+    }
+  ]
+}

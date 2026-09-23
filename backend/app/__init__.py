@@ -1,0 +1,1 @@
+"""Larpsec organizational analysis backend."""

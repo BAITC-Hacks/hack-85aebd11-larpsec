@@ -1,0 +1,163 @@
+# API для фронтенда
+
+Базовый адрес: `http://127.0.0.1:8000/api/v1`. Версия контракта: `v1`.
+Интерактивная документация: `/docs`. Машиночитаемая схема: `/openapi.json` и [openapi.json](openapi.json).
+По умолчанию разрешены Origin `http://localhost:5173` и `http://localhost:3000`.
+Другие адреса задаются в `CORS_ORIGINS` как JSON-массив.
+
+Если на сервере задан `API_TOKEN`, все операции `/api/v1` требуют
+`Authorization: Bearer <токен приложения>`. Это общий доступ доверенной команды,
+не система отдельных пользовательских аккаунтов. Ключ модели в браузер не передаётся.
+Без `API_TOKEN` сервис предназначен для локальной работы. `/health` доступен без токена.
+
+## Основной сценарий
+
+1. `POST /comparisons` создаёт сравнение и возвращает `id`.
+2. `POST /comparisons/{id}/documents?side=before` и `?side=after` загружают по одному файлу.
+   Multipart-поле **`file`**. При отправке `FormData` не задавайте `Content-Type` вручную.
+3. При необходимости пользователь подтверждает полноту комплектов через
+   `PATCH /comparisons/{id}/coverage`.
+4. `POST /comparisons/{id}/analyze` запускает анализ, HTTP 202.
+5. Опрос `GET /comparisons/{id}` раз в 1–2 секунды до `completed` или `failed`.
+6. `GET /comparisons/{id}/result` возвращает результат.
+7. Для открытия цитаты: `GET /comparisons/{id}/sources/{fragment_id}`.
+
+## Операции
+
+Все пути ниже, кроме `/health`, указаны относительно `/api/v1`.
+
+| Метод | Путь | Назначение |
+| --- | --- | --- |
+| GET | `/health` (в корне сервера) | Режим, готовность конфигурации анализа, версия |
+| POST | `/comparisons` | Создать сравнение, HTTP 201 |
+| GET | `/comparisons?limit=20&offset=0` | Список сравнений, `limit` от 1 до 100 |
+| GET | `/comparisons/{id}` | Статус, прогресс, комплект документов |
+| PATCH | `/comparisons/{id}/coverage` | Подтверждение полноты обоих комплектов |
+| POST | `/comparisons/{id}/documents?side=before` | Загрузка одного файла, HTTP 201 |
+| DELETE | `/comparisons/{id}/documents/{document_id}` | Удаление файла до анализа, HTTP 204 |
+| GET | `/comparisons/{id}/documents/{document_id}/fragments` | Фрагменты; `limit=200`, максимум 1000, `offset=0` |
+| GET | `/comparisons/{id}/sources/{fragment_id}` | Конкретный фрагмент, без пагинации |
+| GET | `/comparisons/{id}/documents/{document_id}/download` | Скачать оригинал |
+| POST | `/comparisons/{id}/analyze` | Запуск или повтор неудавшегося анализа, HTTP 202 |
+| GET | `/comparisons/{id}/result` | Данные для всех экранов результатов |
+| PATCH | `/comparisons/{id}/findings/{finding_id}/review` | Оценка замечания сотрудником |
+| GET | `/comparisons/{id}/report?format=markdown` | Скачать заключение `.md` |
+| GET | `/comparisons/{id}/report?format=json` | Скачать результат JSON |
+
+## Создание и полнота
+
+```json
+{
+  "title": "Реорганизация внутреннего аудита",
+  "before_complete": false,
+  "after_complete": false
+}
+```
+
+Все три поля при создании необязательны. По умолчанию полнота не подтверждена.
+`PATCH /coverage` требует оба boolean-поля. Подтверждение означает, что пользователь
+считает загруженный комплект полным для выбранной области анализа. Наличие файлов
+само по себе не означает полноту. Если парсер обнаруживает нечитаемые страницы,
+изображения или иные ограничения, эффективная `result.coverage` остаётся `false`
+даже при подтверждении пользователя.
+То же относится к сообщению модели о неполном извлечении функций.
+
+Документы можно добавлять/удалять в `draft` и `failed`. После постановки в очередь
+состав фиксируется. Для нового комплекта после завершения создайте новое сравнение.
+
+## Статусы
+
+`status`: `draft → queued → running → completed`, при ошибке — `failed`.
+`stage`: `draft`, `queued`, `extracting`, `comparing`, `validating`, `completed`, `failed`.
+`progress`: целое 0–100, оценка этапа, не оставшегося времени.
+`error`: `null` или `{ "code": "...", "message": "..." }`.
+
+Повторный `POST /analyze` для queued/running/completed возвращает текущее состояние
+и **не запускает новую платную обработку**. Для failed он запускает повторную попытку.
+После перезапуска сервера незавершённые задания переходят в failed с кодом `interrupted`.
+Автоматического повторного обращения к модели после перезапуска нет.
+
+## Результат
+
+Полный пример: [example-result.json](example-result.json). К нему прилагаются
+[состояние сравнения с документами](example-comparison.json) и
+[исходные фрагменты](example-sources.json), чтобы фронтенд мог работать с согласованными
+учебными данными до подключения сервера.
+
+| Поле | Содержание |
+| --- | --- |
+| `mode`, `model` | `demo`/`llm` и имя модели либо null |
+| `summary` | Краткое заключение с числами, вычисленными по результатам |
+| `units` | Подразделения, должности, группы; `id`, `name`, `kind`, `side`, `aliases`, `evidence` |
+| `functions` | Функции; `unit_id`, `owner`, `action`, `object`, `scope`, `kind`, `side`, `evidence` |
+| `reporting` | Подчинение: `subject`, `supervisor`, `kind`, `side`, `evidence` |
+| `unit_changes` | Сопоставления структуры с массивами `before_ids` и `after_ids` |
+| `function_changes` | Таблица функций: `before_id` или null, `after_ids`, `status`, `explanation`, `evidence` |
+| `findings` | Замечания: тип, объяснение, рекомендации, связанные функции, цитаты |
+| `coverage` | Эффективная полнота `before` и `after` |
+| `warnings` | Ограничения извлечения, режима и анализа |
+| `reviews` | Сохранённые оценки замечаний сотрудником |
+
+`functions.kind`: `duty`, `permission`, `prohibition`.
+`reporting.kind`: `functional`, `administrative`, `unspecified`.
+
+Статусы структуры: `preserved`, `renamed`, `merged`, `split`, `reorganized`, `created`, `unmatched`.
+`created` означает, что сопоставленный субъект в исходном комплекте не найден;
+это ещё не доказательство фактического создания подразделения. Показывайте explanation.
+
+Статусы функций: `preserved`, `moved`, `modified`, `potential_loss`, `unmatched`, `added`.
+`unmatched` используется при недостаточной полноте данных. `potential_loss` — потенциальная
+потеря, требующая проверки, даже при полной coverage. `added` также требует учёта полноты.
+
+Типы замечаний: `potential_loss`, `duplication`, `conflict`, `coverage_gap`.
+Все они требуют человеческой проверки. Не показывайте их как доказанные нарушения.
+Сохранённые оценки находятся отдельно в `reviews`; отсутствие записи означает `unreviewed`.
+
+```json
+{
+  "status": "confirmed",
+  "comment": "Сверено с пунктами документов"
+}
+```
+
+Оценки: `unreviewed`, `confirmed`, `dismissed`. Комментарий — до 2000 символов.
+
+## Источники
+
+```json
+{
+  "fragment_id": "DOCUMENT_ID:00012",
+  "quote": "Проверяет сохранность активов."
+}
+```
+
+`fragment_id` — непрозрачный идентификатор. Используйте его целиком в `/sources/{fragment_id}`.
+Фрагмент содержит `document_id`, `text`, `locator`, `clause`, `page`, `sheet`, `cell_range`.
+Название документа берётся из `comparison.documents` по `document_id`.
+
+Для DOCX номер страницы не вычисляется: используйте пункт и абзац. Для PDF есть страница,
+для Excel — лист и диапазон ячеек. Один длинный абзац может быть разделён на части с
+отдельными идентификаторами. В отчёте о потенциальной потере цитируется исходная функция;
+«отсутствие» в after не подменяется выдуманной цитатой.
+
+Отображайте текст и цитаты как текстовые узлы, не через `innerHTML`.
+
+## Ошибки
+
+```json
+{
+  "error": {
+    "code": "missing_documents",
+    "message": "Загрузите хотя бы один документ в каждый комплект."
+  }
+}
+```
+
+401 — неверный токен; 404 — ресурс не найден; 409 — неподходящий статус/дубликат/результат не готов;
+413 — превышен лимит; 415 — неподдерживаемый формат; 422 — параметры/документ;
+429 — очередь заполнена; 503 — не настроена модель или сервер завершает работу.
+
+Ошибки фонового задания возвращаются через `comparison.error`, а не статус HTTP опроса.
+Например: `llm_timeout`, `llm_auth_error`, `llm_incomplete`, `unsupported_evidence`,
+`invalid_analysis_reference`, `no_functions`, `interrupted`.
+При ошибке модели нет автоматического перехода в demo.

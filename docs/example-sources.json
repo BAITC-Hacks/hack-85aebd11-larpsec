@@ -1,0 +1,382 @@
+[
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00001",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "УЧЕБНЫЙ ПРИМЕР. Положение о внутреннем аудите — ДО",
+    "locator": "Абзац 1 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00002",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Синтетические данные для проверки прототипа.",
+    "locator": "Абзац 2 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00003",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Подразделение: Департамент непрерывного мониторинга",
+    "locator": "Абзац 3 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00004",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "1.1. Проводит непрерывный мониторинг системы внутреннего контроля.",
+    "locator": "Абзац 4 (включая таблицы)",
+    "clause": "1.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00005",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "1.2. Готовит отчёт о результатах непрерывного аудита.",
+    "locator": "Абзац 5 (включая таблицы)",
+    "clause": "1.2",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00006",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "1.3. Проверяет сохранность активов.",
+    "locator": "Абзац 6 (включая таблицы)",
+    "clause": "1.3",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00007",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "1.4. Проверяет права доступа к информационным системам.",
+    "locator": "Абзац 7 (включая таблицы)",
+    "clause": "1.4",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00008",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "1.5. Оценивает эффективность контрольных процедур; Область: филиалы.",
+    "locator": "Абзац 8 (включая таблицы)",
+    "clause": "1.5",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00009",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Подразделение: Департамент контроля качества аудита и методологии",
+    "locator": "Абзац 9 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00010",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "2.1. Разрабатывает методологию внутреннего аудита.",
+    "locator": "Абзац 10 (включая таблицы)",
+    "clause": "2.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00011",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "2.2. Организует обучение внутренних аудиторов.",
+    "locator": "Абзац 11 (включая таблицы)",
+    "clause": "2.2",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00012",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "2.3. Запрещено: утверждать платежи поставщикам.",
+    "locator": "Абзац 12 (включая таблицы)",
+    "clause": "2.3",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00013",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "2.4. Оценивает эффективность контрольных процедур; Область: головной офис.",
+    "locator": "Абзац 13 (включая таблицы)",
+    "clause": "2.4",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00014",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Должность: Главный аудитор",
+    "locator": "Абзац 14 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00015",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Функциональное подчинение: Совет директоров",
+    "locator": "Абзац 15 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00016",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "Административное подчинение: Президент Общества",
+    "locator": "Абзац 16 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "908f1f6481b14dba834a6698b8e1b0b1:00017",
+    "document_id": "908f1f6481b14dba834a6698b8e1b0b1",
+    "text": "3.1. Утверждает программу проверки.",
+    "locator": "Абзац 17 (включая таблицы)",
+    "clause": "3.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00001",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "УЧЕБНЫЙ ПРИМЕР. Положение о внутреннем аудите — ПОСЛЕ",
+    "locator": "Абзац 1 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00002",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Синтетические данные для проверки прототипа.",
+    "locator": "Абзац 2 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00003",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Подразделение: Департамент непрерывного аудита",
+    "locator": "Абзац 3 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00004",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Переименован из: Департамент непрерывного мониторинга",
+    "locator": "Абзац 4 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00005",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "1.1. Проводит непрерывный мониторинг системы внутреннего контроля.",
+    "locator": "Абзац 5 (включая таблицы)",
+    "clause": "1.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00006",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "1.4. Проверяет права доступа к информационным системам.",
+    "locator": "Абзац 6 (включая таблицы)",
+    "clause": "1.4",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00007",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "1.5. Оценивает эффективность контрольных процедур; Область: филиалы.",
+    "locator": "Абзац 7 (включая таблицы)",
+    "clause": "1.5",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00008",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Подразделение: Департамент контроля качества аудита и методологии",
+    "locator": "Абзац 8 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00009",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.1. Разрабатывает методологию внутреннего аудита.",
+    "locator": "Абзац 9 (включая таблицы)",
+    "clause": "2.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00010",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.2. Организует обучение внутренних аудиторов.",
+    "locator": "Абзац 10 (включая таблицы)",
+    "clause": "2.2",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00011",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.3. Запрещено: утверждать платежи поставщикам.",
+    "locator": "Абзац 11 (включая таблицы)",
+    "clause": "2.3",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00012",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.4. Оценивает эффективность контрольных процедур; Область: головной офис.",
+    "locator": "Абзац 12 (включая таблицы)",
+    "clause": "2.4",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00013",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.5. Готовит отчёт о результатах непрерывного аудита.",
+    "locator": "Абзац 13 (включая таблицы)",
+    "clause": "2.5",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00014",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.6. Проверяет права доступа к информационным системам.",
+    "locator": "Абзац 14 (включая таблицы)",
+    "clause": "2.6",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00015",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "2.7. Утверждать платежи поставщикам.",
+    "locator": "Абзац 15 (включая таблицы)",
+    "clause": "2.7",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00016",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Должность: Главный аудитор",
+    "locator": "Абзац 16 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00017",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Функциональное подчинение: Совет директоров",
+    "locator": "Абзац 17 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00018",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Административное подчинение: Президент Общества",
+    "locator": "Абзац 18 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00019",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "3.1. Утверждает программу проверки.",
+    "locator": "Абзац 19 (включая таблицы)",
+    "clause": "3.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00020",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "Подразделение: Отдел аналитики",
+    "locator": "Абзац 20 (включая таблицы)",
+    "clause": null,
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  },
+  {
+    "id": "dc8ff2f2397c44899c8c352a27a0823d:00021",
+    "document_id": "dc8ff2f2397c44899c8c352a27a0823d",
+    "text": "4.1. Анализирует сроки выполнения аудиторских рекомендаций.",
+    "locator": "Абзац 21 (включая таблицы)",
+    "clause": "4.1",
+    "page": null,
+    "sheet": null,
+    "cell_range": null
+  }
+]
