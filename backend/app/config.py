@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     max_documents: int = Field(default=20, ge=2, le=100)
     max_document_chars: int = Field(default=200000, ge=1000)
     max_comparison_chars: int = Field(default=400000, ge=1000)
-    max_analysis_functions: int = Field(default=400, ge=10)
+    max_analysis_functions: int = Field(default=1000, ge=10)
     max_llm_input_chars: int = Field(default=300000, ge=10000)
     extraction_chunk_chars: int = Field(default=12000, ge=2000)
     job_workers: int = Field(default=2, ge=1, le=8)

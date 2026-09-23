@@ -1,4 +1,4 @@
-import { omitTextRanges, xlsxRowNumberRanges, type TextRange } from './xlsxText';
+import { omitTextRanges, xlsxCellPrefixRanges, type TextRange } from './xlsxText';
 
 export type DiffSegment = { text: string; changed: boolean };
 
@@ -19,6 +19,7 @@ export type TextDiff = {
   rows: DiffRow[];
   removedLines: number;
   addedLines: number;
+  modifiedLines: number;
   changeBlocks: number;
 };
 
@@ -55,13 +56,44 @@ function comparisonKey(text: string): string {
   return text.replace(/\s+/gu, ' ').trim();
 }
 
+/** Old XLSX uploads embedded coordinates in text; keep those in source locators only. */
+export function spreadsheetValues(text: string): string {
+  return text.split(/\r\n|\n|\r/u).map((line) => {
+    const cells = line.split('|');
+    if (!cells.every((cell) => /^\s*\$?[A-Z]{1,3}\$?[1-9]\d*:\s*/u.test(cell))) return line;
+    return line.replace(/(^\s*|\|\s*)\$?[A-Z]{1,3}\$?[1-9]\d*:\s*/gu, '$1');
+  }).join('\n');
+}
+
+const MATCH_STOP_WORDS = new Set(['и', 'или', 'в', 'во', 'на', 'по', 'с', 'со', 'к', 'ко', 'от', 'до', 'за', 'для', 'из', 'под', 'при', 'о', 'об', 'а', 'но', 'не', 'это', 'как']);
+function bodyKey(text: string): string {
+  const body = text.replace(/^\s*(?:(?:\d+(?:\.\d+)*|[\p{L}])[).:]\s*)+/u, '');
+  return (body.toLocaleLowerCase('ru').replace(/ё/gu, 'е').match(/[\p{L}\p{M}\p{N}]+/gu) ?? []).join(' ');
+}
+function meaningfulTokens(text: string): Set<string> {
+  const body = text.replace(/^\s*(?:(?:\d+(?:\.\d+)*|[\p{L}])[).:]\s*)+/u, '');
+  return new Set((body.toLocaleLowerCase('ru').replace(/ё/gu, 'е').match(/[\p{L}\p{M}]{2,}/gu) ?? []).filter((token) => !MATCH_STOP_WORDS.has(token)));
+}
+
+export function lineSimilarity(before: string, after: string): number {
+  if (bodyKey(before) === bodyKey(after) && meaningfulTokens(before).size > 0) return 1;
+  return tokenSimilarity(meaningfulTokens(before), meaningfulTokens(after));
+}
+
+function tokenSimilarity(before: Set<string>, after: Set<string>): number {
+  let common = 0;
+  for (const token of before) if (after.has(token)) common += 1;
+  // A shared number, bullet, preposition or a single generic word is not a match.
+  return common < 2 ? 0 : common / Math.max(before.size, after.size);
+}
+
 function sourceLines(text: string, format?: 'text' | 'xlsx', sourceFragments?: readonly string[], sourceLocators?: readonly (string | undefined)[]): SourceLine[] {
   const lines: SourceLine[] = [];
   // Accept boundaries only when they describe the exact source being displayed.
   const fragments = format === 'xlsx' && sourceFragments && sourceFragments.join('\n\n') === text ? sourceFragments : [text];
   for (const [fragmentIndex, fragment] of fragments.entries()) {
     const locator = fragments === sourceFragments ? sourceLocators?.[fragmentIndex] : undefined;
-    const ranges = format === 'xlsx' ? xlsxRowNumberRanges(fragment, locator) : [];
+    const ranges = format === 'xlsx' ? xlsxCellPrefixRanges(fragment, locator) : [];
     const parts = fragment.split(/(\r\n|\n|\r)/u);
     let offset = 0;
     let rangeIndex = 0;
@@ -289,14 +321,36 @@ function tokenize(line: SourceLine): Token[] {
     const start = match.index;
     const end = start + text.length;
     const ranges: TextRange[] = [];
-    while (rangeIndex < line.ignoredRanges.length && line.ignoredRanges[rangeIndex].start < end) {
-      const range = line.ignoredRanges[rangeIndex++];
-      ranges.push({ start: range.start - start, end: range.end - start });
+    while (rangeIndex < line.ignoredRanges.length && line.ignoredRanges[rangeIndex].end <= start) rangeIndex += 1;
+    for (let cursor = rangeIndex; cursor < line.ignoredRanges.length && line.ignoredRanges[cursor].start < end; cursor += 1) {
+      const range = line.ignoredRanges[cursor];
+      ranges.push({ start: Math.max(0, range.start - start), end: Math.min(text.length, range.end - start) });
     }
-    const key = /^\s+$/u.test(text) ? ' ' : omitTextRanges(text, ranges);
+    const meaningful = omitTextRanges(text, ranges);
+    const key = /^\s+$/u.test(meaningful) ? ' ' : meaningful;
     tokens.push({ text, key });
   }
   return tokens;
+}
+
+function keepAddressesUnchanged(segments: DiffSegment[], ranges: TextRange[]): DiffSegment[] {
+  if (!ranges.length) return segments;
+  const output: DiffSegment[] = [];
+  let offset = 0;
+  for (const segment of segments) {
+    const end = offset + segment.text.length;
+    let cursor = offset;
+    for (const range of ranges) {
+      if (range.end <= cursor || range.start >= end) continue;
+      if (cursor < range.start) appendSegment(output, segment.text.slice(cursor - offset, range.start - offset), segment.changed);
+      const overlapEnd = Math.min(end, range.end);
+      appendSegment(output, segment.text.slice(Math.max(cursor, range.start) - offset, overlapEnd - offset), false);
+      cursor = overlapEnd;
+    }
+    if (cursor < end) appendSegment(output, segment.text.slice(cursor - offset), segment.changed);
+    offset = end;
+  }
+  return output;
 }
 
 function inlineSegments(before: SourceLine, after: SourceLine, budget: Budget): [DiffSegment[], DiffSegment[]] {
@@ -341,7 +395,7 @@ function inlineSegments(before: SourceLine, after: SourceLine, budget: Budget): 
   }
   for (let a = leftEnd; a < left.length; a += 1) appendSegment(beforeSegments, left[a].text, false);
   for (let b = rightEnd; b < right.length; b += 1) appendSegment(afterSegments, right[b].text, false);
-  return [beforeSegments, afterSegments];
+  return [keepAddressesUnchanged(beforeSegments, before.ignoredRanges), keepAddressesUnchanged(afterSegments, after.ignoredRanges)];
 }
 
 function displayLine(line: SourceLine, changed: boolean): DiffLine {
@@ -363,6 +417,7 @@ export function buildTextDiff(beforeText: string, afterText: string, options: Te
   const rows: DiffRow[] = [];
   let removedLines = 0;
   let addedLines = 0;
+  let modifiedLines = 0;
   let changeBlocks = 0;
   let inChangeBlock = false;
   const appendRow = (left: SourceLine | null, right: SourceLine | null) => {
@@ -377,8 +432,9 @@ export function buildTextDiff(beforeText: string, afterText: string, options: Te
       afterLine = { number: right.number, text: right.text, segments: afterSegments };
     }
     if (kind !== 'equal') {
-      if (left) removedLines += 1;
-      if (right) addedLines += 1;
+      if (kind === 'removed') removedLines += 1;
+      if (kind === 'added') addedLines += 1;
+      if (kind === 'modified') modifiedLines += 1;
       if (!inChangeBlock) changeBlocks += 1;
     }
     inChangeBlock = kind !== 'equal';
@@ -400,8 +456,28 @@ export function buildTextDiff(beforeText: string, afterText: string, options: Te
       if (change.kind === 'removed') removed.push(change.before);
       if (change.kind === 'added') added.push(change.after);
     }
-    const count = Math.max(removed.length, added.length);
-    for (let row = 0; row < count; row += 1) appendRow(removed[row] ?? null, added[row] ?? null);
+    const addedTokens = added.map((line) => meaningfulTokens(line.key));
+    const addedBodies = added.map((line) => bodyKey(line.key));
+    let nextAdded = 0;
+    for (const left of removed) {
+      const leftTokens = meaningfulTokens(left.key);
+      const leftBody = bodyKey(left.key);
+      let match = -1;
+      let best = 0.5;
+      // A bounded look-ahead preserves source order without quadratic work on
+      // large unrelated documents. Distant/unrelated lines stay removed/added.
+      for (let right = nextAdded; right < Math.min(added.length, nextAdded + 32); right += 1) {
+        const score = leftTokens.size > 0 && leftBody === addedBodies[right] ? 1 : tokenSimilarity(leftTokens, addedTokens[right]);
+        if (score >= best && (match < 0 || score > best)) { match = right; best = score; }
+        if (score === 1) break;
+      }
+      if (match < 0) appendRow(left, null);
+      else {
+        while (nextAdded < match) appendRow(null, added[nextAdded++]);
+        appendRow(left, added[nextAdded++]);
+      }
+    }
+    while (nextAdded < added.length) appendRow(null, added[nextAdded++]);
   }
-  return { rows, removedLines, addedLines, changeBlocks };
+  return { rows, removedLines, addedLines, modifiedLines, changeBlocks };
 }

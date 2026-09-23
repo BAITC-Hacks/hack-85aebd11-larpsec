@@ -5,6 +5,7 @@ import {
 } from './lib/api';
 import { validateDocumentSignature, validateFile } from './lib/documents';
 import type { AnalysisResult, Comparison, DocumentPhase, Health, ServerDocument, WorkspaceDocument } from './lib/types';
+import { comparisonTitle } from './lib/presentation';
 
 export const COMPARISON_STORAGE_KEY = 'larpsec.comparisonId';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Не удалось выполнить запрос к серверу.';
@@ -140,7 +141,7 @@ export function useDocuments() {
   const ensureComparison = async (expectedGeneration: number): Promise<Comparison> => {
     if (comparisonRef.current) return comparisonRef.current;
     if (creating.current?.generation === expectedGeneration) return creating.current.promise;
-    const promise = createComparison(session.current.signal).then((created) => {
+    const promise = createComparison(session.current.signal, comparisonTitle(documentsRef.current)).then((created) => {
       if (generation.current !== expectedGeneration) throw new DOMException('Операция отменена', 'AbortError');
       saveComparison(created);
       return created;
@@ -304,5 +305,17 @@ export function useDocuments() {
     setLoading(false);
   };
 
-  return { documents, add, process, cancel, remove, update, comparison, result, health, loading, error, locked: isLocked(comparison), analyze, newComparison, refresh };
+  const openComparison = async (id: string): Promise<void> => {
+    if (controllers.current.size || analyzing.current) throw new Error('Дождитесь завершения текущей операции.');
+    const target = await getComparison(id, session.current.signal);
+    await newComparison();
+    const expectedGeneration = generation.current;
+    saveComparison(target);
+    setLoading(true);
+    try { await syncComparison(id, expectedGeneration, session.current.signal); }
+    catch (failure) { if (generation.current === expectedGeneration) setError(message(failure)); throw failure; }
+    finally { if (generation.current === expectedGeneration) setLoading(false); }
+  };
+
+  return { documents, add, process, cancel, remove, update, comparison, result, health, loading, error, locked: isLocked(comparison), analyze, newComparison, openComparison, refresh };
 }

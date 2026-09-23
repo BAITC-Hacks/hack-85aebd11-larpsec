@@ -17,10 +17,15 @@ test('real browser uploads both sets, analyzes, opens sources, saves review and 
   await expect(page.getByRole('region', { name: 'Результат сравнения', exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.analysis-finding')).toHaveCount(3);
   for (const kind of ['potential_loss', 'duplication', 'conflict']) await expect(page.locator(`.finding-${kind}`)).toHaveCount(1);
+  await expect(page.locator('.finding-functions').first()).toBeVisible();
+  await expect(page.locator('.analysis-summary-meta')).toContainText('2 документа');
+  await page.getByRole('button', { name: /^Противоречие/ }).click();
+  await expect(page.locator('.analysis-finding')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Сбросить фильтры' }).click();
   const card = page.locator('.finding-potential_loss');
   await card.locator('summary').click();
   const sourceResponse = page.waitForResponse((response) => response.url().includes('/sources/'));
-  await card.getByRole('button', { name: /До изменений · before.docx/ }).first().click();
+  await card.getByRole('button', { name: /До изменений · Положение — до изменений.docx/ }).first().click();
   const fragment = await (await sourceResponse).json();
   await expect(page.getByRole('dialog', { name: 'Источник вывода' })).toBeVisible();
   await expect(page.getByTestId('source-fragment')).not.toBeEmpty();
@@ -30,13 +35,19 @@ test('real browser uploads both sets, analyzes, opens sources, saves review and 
   await card.getByLabel('Комментарий эксперта').fill('Проверено по исходному пункту.');
   await card.getByRole('button', { name: 'Подтвердить', exact: true }).click();
   await expect(card.getByText('Подтверждено экспертом', { exact: true })).toBeVisible();
+  await page.getByLabel('Проверка экспертом', { exact: true }).selectOption('confirmed');
+  await expect(page.locator('.analysis-finding')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Сбросить фильтры' }).click();
+  await page.getByLabel('Порядок выводов', { exact: true }).selectOption('review');
+  await expect(page.locator('.analysis-finding').first()).toContainText('Ожидает проверки');
   await page.getByRole('button', { name: /^Функции / }).click();
   await expect(page.getByRole('region', { name: 'Изменения функций' })).toContainText('Передана');
   await expect(page.getByRole('region', { name: 'Изменения функций' })).toContainText('Запрет');
   await page.getByRole('button', { name: /^Подразделения / }).click();
   await expect(page.getByRole('region', { name: 'Изменения подразделений' })).toContainText('Переименовано');
   await page.reload();
-  await page.getByRole('button', { name: 'Открыть результаты' }).click();
+  await expect(page.getByRole('button', { name: /^Подразделения / })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: /^Выводы / }).click();
   await expect(page.locator('.finding-potential_loss').getByLabel('Комментарий эксперта')).toHaveValue('Проверено по исходному пункту.');
   await expect(page.locator('.finding-potential_loss')).toContainText('Подтверждено экспертом');
   const downloadPromise = page.waitForEvent('download');
@@ -46,10 +57,31 @@ test('real browser uploads both sets, analyzes, opens sources, saves review and 
   expect(report.comparison_id).toBe(comparison.id);
   expect(report.findings).toHaveLength(3);
   expect(report.reviews[0]).toMatchObject({ status: 'confirmed', comment: 'Проверено по исходному пункту.' });
-  await expect(page.getByRole('button', { name: /Удалить before.docx/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Удалить Положение — до изменений.docx/ })).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('comparison.png'), fullPage: true });
   expect(exceptions).toEqual([]);
+});
+
+test('history opens a saved comparison and deletes its server data after confirmation', async ({ page }) => {
+  await page.goto('/');
+  const title = `Проверка истории ${crypto.randomUUID()}`;
+  const response = await page.request.post('/api/v1/comparisons', { data: { title } });
+  const comparison = await response.json();
+  await page.getByRole('button', { name: 'История', exact: true }).click();
+  const card = page.locator('.history-card').filter({ hasText: title });
+  await card.getByRole('button', { name: 'Открыть сравнение', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Текст до / после', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('larpsec.comparisonId'))).toBe(comparison.id);
+  await page.getByRole('button', { name: 'История', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'История.', exact: true })).toBeVisible();
+  await card.getByRole('button', { name: 'Удалить сравнение', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Удалить сравнение?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Удалить навсегда', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect((await page.request.get(`/api/v1/comparisons/${comparison.id}`)).status()).toBe(404);
 });
 
 test('incomplete sets produce coverage warnings instead of an unsupported loss', async ({ page }) => {
@@ -80,4 +112,62 @@ test('server documents survive reload and deletion really removes the server doc
   await expect(page.getByText('Здесь пока чистый лист')).toBeVisible();
   const response = await page.request.get(`/api/v1/comparisons/${id}`);
   expect((await response.json()).documents).toEqual([]);
+});
+
+test('uploaded TXT repetitions open real source fragments and keep the selected results tab after reload', async ({ page }) => {
+  const exceptions: string[] = [];
+  page.on('pageerror', (error) => exceptions.push(error.message));
+  const body = 'Проводит плановые проверки системы внутреннего контроля и готовит отчёты руководителю.';
+  const documents = [
+    { side: 'before', label: 'До изменений', name: 'Исходное положение.txt', text: `Подразделение: Аудит\n1.1. ${body}\n` },
+    { side: 'after', label: 'После изменений', name: 'Положение с повторами.txt', text: `Подразделение: Аудит\n1.1. ${body}\n1.2. ${body}\n` },
+  ];
+  await page.goto('/');
+  for (const [index, document] of documents.entries()) {
+    if (index) await page.getByRole('button', { name: 'К загрузке документов', exact: true }).click();
+    await page.getByRole('group', { name: 'Версия документа', exact: true }).getByRole('button', { name: document.label, exact: true }).click();
+    await expect(page.getByLabel('Выбрать документ')).toBeEnabled();
+    await page.getByLabel('Выбрать документ').setInputFiles({ name: document.name, mimeType: 'text/plain', buffer: Buffer.from(document.text, 'utf8') });
+    await page.getByRole('button', { name: 'Обработать документ', exact: true }).click();
+    await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible();
+  }
+  await page.getByLabel('Все документы «до» загружены').check();
+  await page.getByLabel('Все документы «после» загружены').check();
+  await expect(page.getByRole('button', { name: 'Запустить сравнение', exact: true })).toBeEnabled();
+  const started = page.waitForResponse((response) => response.url().endsWith('/analyze') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Запустить сравнение', exact: true }).click();
+  const comparison = await (await started).json();
+  const after = comparison.documents.find((document: { side: string }) => document.side === 'after');
+  await expect(page.getByRole('region', { name: 'Результат сравнения', exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('.finding-duplication')).toHaveCount(0);
+  await expect(page.locator('.stat-repetitions strong')).toHaveText('1');
+  const repetitionsTab = page.getByRole('group', { name: 'Раздел результатов сравнения' }).getByRole('button', { name: /^Повторы текста / });
+  await repetitionsTab.click();
+  await expect(repetitionsTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('region', { name: 'Повторы формулировок', exact: true })).toBeVisible();
+  await expect(page.locator('.text-repetition-card')).toHaveCount(1);
+  await expect(page.locator('.text-repetition-card')).toContainText('2 раза в одном документе');
+  await page.getByLabel('Поиск по тексту или номеру пункта', { exact: true }).fill('плановые проверки');
+  await expect(page.locator('.text-repetition-card')).toHaveCount(1);
+  const sourceResponse = page.waitForResponse((response) => response.url().includes('/sources/'));
+  await page.getByRole('button', { name: 'Открыть источник: Строка 3, пункт 1.2', exact: true }).click();
+  const source = await (await sourceResponse).json();
+  expect(source).toMatchObject({ document_id: after.id, locator: 'Строка 3', clause: '1.2', text: `1.2. ${body}` });
+  await expect(page.getByRole('dialog', { name: 'Источник вывода' })).toBeVisible();
+  await expect(page.getByTestId('source-fragment')).toHaveText(source.text);
+  await expect(page.locator('.analysis-source-meta')).toContainText('Положение с повторами.txt');
+  await page.getByRole('button', { name: 'Закрыть источник', exact: true }).click();
+  await page.getByRole('button', { name: 'Очистить поиск повторов', exact: true }).click();
+  const sides = page.getByRole('group', { name: 'Версия документов для поиска повторов' });
+  await sides.getByRole('button', { name: /^До изменений/ }).click();
+  await expect(page.getByRole('heading', { name: 'Повторов в загруженном тексте не найдено', exact: true })).toBeVisible();
+  await sides.getByRole('button', { name: /^После изменений/ }).click();
+  await expect(page.locator('.text-repetition-card')).toHaveCount(1);
+  await expect.poll(() => page.evaluate((id) => localStorage.getItem(`larpsec.resultTab.${id}`), comparison.id)).toBe('repetitions');
+  await page.reload();
+  await expect(repetitionsTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.text-repetition-card')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Открыть источник: Строка 3, пункт 1.2', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(exceptions).toEqual([]);
 });

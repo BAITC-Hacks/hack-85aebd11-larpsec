@@ -51,5 +51,14 @@ export function omitTextRanges(text: string, ranges: readonly TextRange[]): stri
 }
 
 export function xlsxComparisonText(text: string, locator?: string): string {
-  return omitTextRanges(text, xlsxRowNumberRanges(text, locator));
+  return omitTextRanges(text, xlsxCellPrefixRanges(text, locator));
+}
+
+/** Ignore verified parser addresses, while preserving all original display text. */
+export function xlsxCellPrefixRanges(text: string, locator?: string): TextRange[] {
+  return xlsxRowNumberRanges(text, locator).map((range) => {
+    let start = range.start;
+    while (start > 0 && /[A-Z]/u.test(text[start - 1])) start -= 1;
+    return { start, end: range.end + 2 }; // Include the parser's ": " separator.
+  });
 }

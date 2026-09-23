@@ -181,6 +181,44 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Remove Comparison",
+        "operationId": "remove_comparison_api_v1_comparisons__comparison_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "comparison_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Comparison Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/comparisons/{comparison_id}/coverage": {
@@ -754,7 +792,14 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ReportExport"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -1030,6 +1075,534 @@
         ],
         "title": "Evidence"
       },
+      "ExportEvidence": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "locator": {
+            "type": "string",
+            "title": "Locator"
+          },
+          "clause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clause"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "sheet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sheet"
+          },
+          "cell_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cell Range"
+          },
+          "fragment_id": {
+            "type": "string",
+            "title": "Fragment Id"
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Quote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_id",
+          "filename",
+          "side",
+          "sha256",
+          "locator",
+          "clause",
+          "page",
+          "sheet",
+          "cell_range",
+          "fragment_id",
+          "quote"
+        ],
+        "title": "ExportEvidence",
+        "description": "A quotation with enough context to identify its source without the server."
+      },
+      "ExportFinding": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "potential_loss",
+              "duplication",
+              "conflict",
+              "coverage_gap",
+              "reporting_change"
+            ],
+            "title": "Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "recommendation": {
+            "type": "string",
+            "title": "Recommendation"
+          },
+          "function_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Function Ids"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "review_required": {
+            "type": "boolean",
+            "title": "Review Required",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "explanation",
+          "recommendation",
+          "function_ids",
+          "evidence"
+        ],
+        "title": "ExportFinding"
+      },
+      "ExportFunction": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Owner"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Action"
+          },
+          "object": {
+            "type": "string",
+            "title": "Object"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "duty",
+              "permission",
+              "prohibition"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "unit_id": {
+            "type": "string",
+            "title": "Unit Id"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "owner",
+          "action",
+          "object",
+          "scope",
+          "kind",
+          "evidence",
+          "id",
+          "unit_id",
+          "side"
+        ],
+        "title": "ExportFunction"
+      },
+      "ExportFunctionChange": {
+        "properties": {
+          "before_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Id"
+          },
+          "after_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "After Ids"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preserved",
+              "moved",
+              "modified",
+              "potential_loss",
+              "unmatched",
+              "added"
+            ],
+            "title": "Status"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "before_id",
+          "after_ids",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "title": "ExportFunctionChange"
+      },
+      "ExportReporting": {
+        "properties": {
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "supervisor": {
+            "type": "string",
+            "title": "Supervisor"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "functional",
+              "administrative",
+              "unspecified"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "subject",
+          "supervisor",
+          "kind",
+          "evidence",
+          "side"
+        ],
+        "title": "ExportReporting"
+      },
+      "ExportSource": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "locator": {
+            "type": "string",
+            "title": "Locator"
+          },
+          "clause": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clause"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "sheet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sheet"
+          },
+          "cell_range": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cell Range"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "text",
+          "locator",
+          "filename",
+          "side",
+          "sha256"
+        ],
+        "title": "ExportSource"
+      },
+      "ExportUnit": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "department",
+              "role",
+              "group"
+            ],
+            "title": "Kind"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aliases"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Side"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "aliases",
+          "evidence",
+          "id",
+          "side"
+        ],
+        "title": "ExportUnit"
+      },
+      "ExportUnitChange": {
+        "properties": {
+          "before_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Before Ids"
+          },
+          "after_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "After Ids"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preserved",
+              "renamed",
+              "merged",
+              "split",
+              "reorganized",
+              "created",
+              "unmatched"
+            ],
+            "title": "Status"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ExportEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "before_ids",
+          "after_ids",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "title": "ExportUnitChange"
+      },
       "Finding": {
         "properties": {
           "id": {
@@ -1042,7 +1615,8 @@
               "potential_loss",
               "duplication",
               "conflict",
-              "coverage_gap"
+              "coverage_gap",
+              "reporting_change"
             ],
             "title": "Kind"
           },
@@ -1352,6 +1926,155 @@
           "message"
         ],
         "title": "Problem"
+      },
+      "ReportExport": {
+        "properties": {
+          "comparison_id": {
+            "type": "string",
+            "title": "Comparison Id"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "llm"
+            ],
+            "title": "Mode"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "prompt_version": {
+            "type": "string",
+            "title": "Prompt Version"
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/ExportUnit"
+            },
+            "type": "array",
+            "title": "Units"
+          },
+          "functions": {
+            "items": {
+              "$ref": "#/components/schemas/ExportFunction"
+            },
+            "type": "array",
+            "title": "Functions"
+          },
+          "reporting": {
+            "items": {
+              "$ref": "#/components/schemas/ExportReporting"
+            },
+            "type": "array",
+            "title": "Reporting"
+          },
+          "unit_changes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportUnitChange"
+            },
+            "type": "array",
+            "title": "Unit Changes"
+          },
+          "function_changes": {
+            "items": {
+              "$ref": "#/components/schemas/ExportFunctionChange"
+            },
+            "type": "array",
+            "title": "Function Changes"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ExportFinding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "coverage": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Coverage"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewRecord"
+            },
+            "type": "array",
+            "title": "Reviews",
+            "default": []
+          },
+          "export_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Export Version",
+            "default": 1
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/Comparison"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/Document"
+            },
+            "type": "array",
+            "title": "Documents"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ExportSource"
+            },
+            "type": "array",
+            "title": "Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "comparison_id",
+          "mode",
+          "model",
+          "prompt_version",
+          "generated_at",
+          "units",
+          "functions",
+          "reporting",
+          "unit_changes",
+          "function_changes",
+          "findings",
+          "warnings",
+          "coverage",
+          "summary",
+          "comparison",
+          "documents",
+          "sources"
+        ],
+        "title": "ReportExport",
+        "description": "Download format; GET /result keeps its compact analysis contract."
       },
       "Reporting": {
         "properties": {

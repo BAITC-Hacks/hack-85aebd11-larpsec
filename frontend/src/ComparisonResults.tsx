@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, ArrowDownToLine, ArrowRight, BookOpen, Check, CheckCheck, ChevronDown, FileText, GitCompareArrows, LoaderCircle, ShieldCheck, X } from 'lucide-react';
 import { downloadReport, getSource, reviewFinding } from './lib/api';
-import type { AnalysisResult, Comparison, Evidence, Finding, Fragment, FunctionRecord, ReviewRecord, ReviewStatus, WorkspaceDocument } from './lib/types';
+import type { AnalysisResult, Comparison, Evidence, Finding, Fragment, FunctionChange, FunctionRecord, ReviewRecord, ReviewStatus, UnitChange, WorkspaceDocument } from './lib/types';
+import { documentCount, filteredFindings, filterChanges, findingLabels } from './lib/presentation';
+import type { FindingSort } from './lib/presentation';
+import { useStoredChoice } from './lib/preferences';
 import { findTextRepetitions } from './lib/textRepetitions';
 import TextRepetitions from './TextRepetitions';
 import './comparison.css';
@@ -9,17 +12,11 @@ import './comparison.css';
 interface Props {
   comparison: Comparison;
   result: AnalysisResult;
-  documents: WorkspaceDocument[];
-  documentsLoading: boolean;
+  documents?: WorkspaceDocument[];
+  documentsLoading?: boolean;
   onRefresh: () => Promise<void>;
 }
 
-const findingLabels = {
-  potential_loss: 'Возможная потеря',
-  duplication: 'Дублирование функций',
-  conflict: 'Противоречие',
-  coverage_gap: 'Недостаточно данных',
-};
 const functionLabels = {
   preserved: 'Сохранена', moved: 'Передана', modified: 'Изменена',
   potential_loss: 'Возможная потеря', unmatched: 'Нет соответствия', added: 'Добавлена',
@@ -94,7 +91,7 @@ function SourceDialog({ comparison, evidence, onClose }: { comparison: Compariso
   </dialog>;
 }
 
-function FindingCard({ finding, review, comparison, onOpen, onRefresh }: { finding: Finding; review?: ReviewRecord; comparison: Comparison; onOpen: (evidence: Evidence) => void; onRefresh: () => Promise<void> }) {
+function FindingCard({ finding, review, comparison, relatedFunctions, onOpen, onRefresh }: { finding: Finding; review?: ReviewRecord; comparison: Comparison; relatedFunctions: FunctionRecord[]; onOpen: (evidence: Evidence) => void; onRefresh: () => Promise<void> }) {
   const [status, setStatus] = useState<ReviewStatus>(review?.status ?? 'unreviewed');
   const [comment, setComment] = useState(review?.comment ?? '');
   const [savedComment, setSavedComment] = useState(review?.comment ?? '');
@@ -122,6 +119,7 @@ function FindingCard({ finding, review, comparison, onOpen, onRefresh }: { findi
     <div className="analysis-card-top"><span className={`analysis-tag tag-${finding.kind}`}><AlertCircle size={13} />{findingLabels[finding.kind]}</span><span className={`analysis-review-status review-${status}`}>{status === 'confirmed' && <Check size={13} />}{reviewLabels[status]}</span></div>
     <h3 id={`finding-${finding.id}`}>{finding.title}</h3>
     <p className="analysis-explanation">{finding.explanation}</p>
+    {relatedFunctions.length > 0 && <div className="finding-functions" aria-label="Функции, связанные с выводом">{relatedFunctions.map((item) => <div key={item.id}><span className="eyebrow">{sideLabels[item.side]}</span><FunctionDetails item={item} /></div>)}</div>}
     <div className="analysis-recommendation"><span className="eyebrow">ЧТО ПРОВЕРИТЬ</span><p>{finding.recommendation}</p></div>
     <EvidenceList evidence={finding.evidence} comparison={comparison} onOpen={onOpen} />
     <div className="analysis-review">
@@ -144,9 +142,13 @@ function FunctionDetails({ item }: { item: FunctionRecord }) {
   return <div className="analysis-function-detail"><strong>{item.owner}</strong><span className={`analysis-function-kind kind-${item.kind}`}>{kindLabels[item.kind]}</span><p>{item.action}</p>{item.object && <p><span>Объект:</span> {item.object}</p>}{item.scope && <p><span>Область:</span> {item.scope}</p>}</div>;
 }
 
-export default function ComparisonResults({ comparison, result, documents, documentsLoading, onRefresh }: Props) {
-  const [tab, setTab] = useState<'findings' | 'functions' | 'units' | 'repetitions'>('findings');
-  const [findingFilter, setFindingFilter] = useState<'all' | Finding['kind']>('all');
+export default function ComparisonResults({ comparison, result, documents = [], documentsLoading = false, onRefresh }: Props) {
+  const [tab, setTab] = useStoredChoice(`larpsec.resultTab.${comparison.id}`, ['findings', 'functions', 'units', 'repetitions'] as const, 'findings');
+  const [kindFilter, setKindFilter] = useState<Finding['kind'] | 'all'>('all');
+  const [reviewFilter, setReviewFilter] = useState<ReviewStatus | 'all'>('all');
+  const [sort, setSort] = useState<FindingSort>('original');
+  const [functionFilter, setFunctionFilter] = useState<FunctionChange['status'] | 'all'>('all');
+  const [unitFilter, setUnitFilter] = useState<UnitChange['status'] | 'all'>('all');
   const [source, setSource] = useState<Evidence | null>(null);
   const [downloading, setDownloading] = useState<'markdown' | 'json' | null>(null);
   const [downloadError, setDownloadError] = useState('');
@@ -156,17 +158,18 @@ export default function ComparisonResults({ comparison, result, documents, docum
   const functions = new Map(result.functions.map((item) => [item.id, item]));
   const units = new Map(result.units.map((item) => [item.id, item]));
   const reviews = new Map(result.reviews.map((item) => [item.finding_id, item]));
+  const visibleFindings = filteredFindings(result, kindFilter, reviewFilter, sort);
+  const visibleFunctions = filterChanges(result.function_changes, functionFilter);
+  const visibleUnits = filterChanges(result.unit_changes, unitFilter);
   const repetitions = useMemo(() => findTextRepetitions(documents), [documents]);
   const afterRepetitions = repetitions.filter((item) => item.side === 'after');
   const sourceDocuments = comparison.documents.map((item) => documents.find((document) => document.serverId === item.id));
   const sourcesPending = documentsLoading || sourceDocuments.some((document) => document?.status === 'processing' || document?.status === 'uploading');
   const unavailableSides = (['before', 'after'] as const).filter((side) => comparison.documents.some((item) => item.side === side && !documents.some((document) => document.serverId === item.id && document.status === 'ready' && document.result)));
-  const visibleFindings = findingFilter === 'all' ? result.findings : result.findings.filter((item) => item.kind === findingFilter);
   const focusContent = () => requestAnimationFrame(() => {
     content.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     content.current?.focus({ preventScroll: true });
   });
-  const showFindingKind = (kind: Finding['kind']) => { setFindingFilter(kind); setTab('findings'); focusContent(); };
   const showRepetitions = () => { setTab('repetitions'); focusContent(); };
   const download = async (format: 'markdown' | 'json') => {
     setDownloading(format); setDownloadError('');
@@ -179,19 +182,28 @@ export default function ComparisonResults({ comparison, result, documents, docum
     <div className="analysis-heading-row"><div><span className="eyebrow">СРАВНЕНИЕ ЗАВЕРШЕНО</span><h2 ref={heading} tabIndex={-1}>Изменения и выводы</h2><p>{comparison.title}</p></div><div className="analysis-downloads"><button className="button secondary compact" disabled={downloading !== null} onClick={() => void download('markdown')}>{downloading === 'markdown' ? <LoaderCircle size={16} className="spin" /> : <ArrowDownToLine size={16} />}Скачать отчёт</button><button className="button secondary compact" disabled={downloading !== null} onClick={() => void download('json')}>{downloading === 'json' ? <LoaderCircle size={16} className="spin" /> : <ArrowDownToLine size={16} />}JSON</button></div></div>
     {downloadError && <p className="analysis-error" role="alert">{downloadError}</p>}
     <div className={`notice analysis-mode ${result.mode === 'demo' ? 'example-notice' : ''}`}><ShieldCheck size={19} /><div><strong>{result.mode === 'demo' ? 'Демонстрационный анализ' : 'Анализ с языковой моделью'}</strong><p>{result.mode === 'demo' ? 'Сервер сравнил документы по формальным правилам. Свободные формулировки могут быть распознаны не полностью; выводы нужно проверить по источникам.' : `Документы обработаны моделью${result.model ? ` ${result.model}` : ''}. Проверьте выводы и подтверждающие цитаты перед принятием решений.`}</p></div></div>
-    <div className="analysis-tabs" role="group" aria-label="Раздел результатов сравнения"><button aria-pressed={tab === 'findings'} aria-controls="analysis-content" onClick={() => { setTab('findings'); setFindingFilter('all'); focusContent(); }}><FileText size={17} />Выводы <span>{result.findings.length}</span></button><button aria-pressed={tab === 'functions'} aria-controls="analysis-content" onClick={() => { setTab('functions'); focusContent(); }}><GitCompareArrows size={17} />Функции <span>{result.function_changes.length}</span></button><button aria-pressed={tab === 'units'} aria-controls="analysis-content" onClick={() => { setTab('units'); focusContent(); }}><BookOpen size={17} />Подразделения <span>{result.unit_changes.length}</span></button><button aria-pressed={tab === 'repetitions'} aria-controls="analysis-content" onClick={showRepetitions}><FileText size={17} />Повторы текста <span>{sourcesPending ? '…' : unavailableSides.length ? '—' : repetitions.length}</span></button></div>
-    <div className="analysis-stats" aria-label="Сводка замечаний">{(Object.keys(findingLabels) as (keyof typeof findingLabels)[]).map((kind) => <button type="button" className={`panel analysis-stat stat-${kind}`} aria-pressed={tab === 'findings' && findingFilter === kind} onClick={() => showFindingKind(kind)} key={kind}><span>{findingLabels[kind]}</span><strong>{result.findings.filter((finding) => finding.kind === kind).length}</strong></button>)}<button type="button" className="panel analysis-stat stat-repetitions" aria-pressed={tab === 'repetitions'} onClick={showRepetitions}><span>Повторы текста «после»</span><strong>{sourcesPending ? '…' : unavailableSides.includes('after') ? '—' : afterRepetitions.length}</strong></button></div>
-    <div className="panel analysis-summary"><p>{result.summary}</p><div className="analysis-summary-meta"><span>{comparison.documents.length} документов</span><span>{result.functions.filter((item) => item.side === 'before').length} функций до → {result.functions.filter((item) => item.side === 'after').length} после</span><span>{new Date(result.generated_at).toLocaleString('ru-RU')}</span></div><div className="analysis-coverage">{(['before', 'after'] as const).map((side) => <span key={side} className={result.coverage[side] ? 'coverage-complete' : 'coverage-incomplete'}>{result.coverage[side] ? <Check size={14} /> : <AlertCircle size={14} />}{sideLabels[side]}: {result.coverage[side] ? 'полное покрытие' : 'неполное покрытие'}</span>)}</div>{(!result.coverage.before || !result.coverage.after) && <p className="analysis-coverage-note">При неполном наборе документов или неполном извлечении текста нельзя уверенно судить о потере функций.</p>}</div>
+    <div className="analysis-stats" aria-label="Сводка замечаний">{(Object.keys(findingLabels) as (keyof typeof findingLabels)[]).map((kind) => <button type="button" className={`panel analysis-stat stat-${kind}`} key={kind} aria-pressed={tab === 'findings' && kindFilter === kind} onClick={() => { setTab('findings'); setKindFilter(kindFilter === kind ? 'all' : kind); setReviewFilter('all'); }}><span>{findingLabels[kind]}</span><strong>{result.findings.filter((finding) => finding.kind === kind).length}</strong></button>)}</div>
+    <div className="analysis-text-tools" aria-label="Дополнительная проверка текста"><p>Проверка текста · отдельно от замечаний о функциях</p><button type="button" className="panel analysis-stat stat-repetitions" aria-pressed={tab === 'repetitions'} onClick={showRepetitions}><span>Повторы текста «после»</span><strong>{sourcesPending ? '…' : unavailableSides.includes('after') ? '—' : afterRepetitions.length}</strong></button></div>
+    <div className="panel analysis-summary"><p>{result.summary}</p><div className="analysis-summary-meta"><span>{documentCount(comparison.documents.length)}</span><span>{result.functions.filter((item) => item.side === 'before').length} функций до → {result.functions.filter((item) => item.side === 'after').length} после</span><span>{new Date(result.generated_at).toLocaleString('ru-RU')}</span></div><div className="analysis-coverage">{(['before', 'after'] as const).map((side) => <span key={side} className={result.coverage[side] ? 'coverage-complete' : 'coverage-incomplete'}>{result.coverage[side] ? <Check size={14} /> : <AlertCircle size={14} />}{sideLabels[side]}: {result.coverage[side] ? 'полное покрытие' : 'неполное покрытие'}</span>)}</div>{(!result.coverage.before || !result.coverage.after) && <p className="analysis-coverage-note">При неполном наборе документов или неполном извлечении текста нельзя уверенно судить о потере функций.</p>}</div>
     {result.warnings.length > 0 && <details className="analysis-warnings"><summary><AlertCircle size={16} />Предупреждения анализа ({result.warnings.length})<ChevronDown size={15} /></summary><ul>{result.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}
+    <div className="analysis-tabs" role="group" aria-label="Раздел результатов сравнения"><button aria-pressed={tab === 'findings'} aria-controls="analysis-content" onClick={() => setTab('findings')}><FileText size={17} />Выводы <span>{result.findings.length}</span></button><button aria-pressed={tab === 'functions'} aria-controls="analysis-content" onClick={() => setTab('functions')}><GitCompareArrows size={17} />Функции <span>{result.function_changes.length}</span></button><button aria-pressed={tab === 'units'} aria-controls="analysis-content" onClick={() => setTab('units')}><BookOpen size={17} />Подразделения <span>{result.unit_changes.length}</span></button><button aria-pressed={tab === 'repetitions'} aria-controls="analysis-content" onClick={showRepetitions}><FileText size={17} />Повторы текста <span>{sourcesPending ? '…' : unavailableSides.length ? '—' : repetitions.length}</span></button></div>
+    {tab === 'findings' && <div className="finding-filters">
+      <label>Тип замечания<select aria-label="Тип замечания" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as Finding['kind'] | 'all')}><option value="all">Все типы</option>{(Object.keys(findingLabels) as Finding['kind'][]).map((kind) => <option key={kind} value={kind}>{findingLabels[kind]}</option>)}</select></label>
+      <label>Проверка экспертом<select aria-label="Проверка экспертом" value={reviewFilter} onChange={(event) => setReviewFilter(event.target.value as ReviewStatus | 'all')}><option value="all">Все решения</option>{(Object.keys(reviewLabels) as ReviewStatus[]).map((status) => <option key={status} value={status}>{reviewLabels[status]}</option>)}</select></label>
+      <label>Порядок выводов<select aria-label="Порядок выводов" value={sort} onChange={(event) => setSort(event.target.value as FindingSort)}><option value="original">Исходный порядок</option><option value="kind">По типу замечания</option><option value="review">Сначала непроверенные</option></select></label>
+      <span role="status">Показано {visibleFindings.length} из {result.findings.length}</span>
+      {(kindFilter !== 'all' || reviewFilter !== 'all') && <button className="text-button" onClick={() => { setKindFilter('all'); setReviewFilter('all'); }}>Сбросить фильтры</button>}
+    </div>}
+    {tab === 'functions' && <div className="finding-filters"><label>Статус функции<select aria-label="Статус функции" value={functionFilter} onChange={(event) => setFunctionFilter(event.target.value as FunctionChange['status'] | 'all')}><option value="all">Все функции</option>{(Object.keys(functionLabels) as FunctionChange['status'][]).map((status) => <option key={status} value={status}>{functionLabels[status]}</option>)}</select></label><span role="status">Показано {visibleFunctions.length} из {result.function_changes.length}</span></div>}
+    {tab === 'units' && <div className="finding-filters"><label>Статус подразделения<select aria-label="Статус подразделения" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value as UnitChange['status'] | 'all')}><option value="all">Все подразделения</option>{(Object.keys(unitLabels) as UnitChange['status'][]).map((status) => <option key={status} value={status}>{unitLabels[status]}</option>)}</select></label><span role="status">Показано {visibleUnits.length} из {result.unit_changes.length}</span></div>}
     <div id="analysis-content" ref={content} tabIndex={-1} className="analysis-content" role="region" aria-label={tab === 'findings' ? 'Выводы сравнения' : tab === 'functions' ? 'Изменения функций' : tab === 'units' ? 'Изменения подразделений' : 'Повторы текста'}>
-      {tab === 'findings' && findingFilter !== 'all' && <div className="analysis-filter-heading"><h3>{findingLabels[findingFilter]} <span>{visibleFindings.length}</span></h3><button type="button" className="text-button" onClick={() => setFindingFilter('all')}>Все выводы</button></div>}
-      {tab === 'findings' && (visibleFindings.length ? visibleFindings.map((finding) => <FindingCard key={finding.id} finding={finding} review={reviews.get(finding.id)} comparison={comparison} onOpen={setSource} onRefresh={onRefresh} />) : <div className="panel analysis-empty"><CheckCheck size={28} /><h3>{findingFilter === 'all' ? 'Замечаний не найдено' : 'В этой категории нет замечаний'}</h3><p>{findingFilter === 'duplication' ? 'Здесь показаны возможные совпадения обязанностей у разных владельцев. Дословно повторённые пункты документа доступны в разделе «Повторы текста».' : 'Посмотрите сопоставление функций и подразделений. Отсутствие замечаний относится к загруженным документам и возможностям выбранного режима анализа.'}</p>{findingFilter === 'duplication' && <button type="button" className="button secondary" onClick={showRepetitions}>Показать повторы текста</button>}{result.mode === 'demo' && <p>В деморежиме смысловые совпадения и перефразированные функции могут быть пропущены.</p>}</div>)}
+      {tab === 'findings' && (visibleFindings.length ? visibleFindings.map((finding) => <FindingCard key={finding.id} finding={finding} review={reviews.get(finding.id)} comparison={comparison} relatedFunctions={finding.function_ids.flatMap((id) => { const item = functions.get(id); return item ? [item] : []; })} onOpen={setSource} onRefresh={onRefresh} />) : <div className="panel analysis-empty"><CheckCheck size={28} /><h3>{result.findings.length ? 'Нет замечаний с выбранными фильтрами' : 'Замечаний не найдено'}</h3><p>{result.findings.length ? 'Выберите другой тип или статус проверки, чтобы увидеть остальные выводы.' : 'Посмотрите сопоставление функций и подразделений. Отсутствие замечаний относится к загруженным документам и возможностям выбранного режима анализа.'}</p>{kindFilter === 'duplication' && <><p>Дублирование функций относится к полномочиям разных владельцев. Дословные повторы пунктов показаны отдельно.</p><button className="button secondary" onClick={showRepetitions}>Показать повторы текста</button></>}</div>)}
       {tab === 'repetitions' && <TextRepetitions groups={repetitions} loading={sourcesPending} unavailableSides={unavailableSides} onOpen={setSource} onRetry={onRefresh} />}
-      {tab === 'functions' && (result.function_changes.length ? result.function_changes.map((change, index) => {
+      {tab === 'functions' && (visibleFunctions.length ? visibleFunctions.map((change, index) => {
         const before = change.before_id ? functions.get(change.before_id) : undefined;
         return <article className="panel analysis-change" key={`${change.before_id ?? 'added'}-${index}`}><div className="analysis-card-top"><span className={`analysis-tag tag-${change.status}`}>{functionLabels[change.status]}</span><span className="analysis-change-number">{String(index + 1).padStart(2, '0')}</span></div><div className="analysis-mapping"><div><h3>До изменений</h3>{before ? <FunctionDetails item={before} /> : <p className="analysis-missing">Соответствие в документах «до» не найдено.</p>}</div><ArrowRight size={20} className="analysis-mapping-arrow" /><div><h3>После изменений</h3>{change.after_ids.length ? change.after_ids.map((id) => { const item = functions.get(id); return item ? <FunctionDetails key={id} item={item} /> : <p key={id} className="analysis-missing">Функция не найдена в результате.</p>; }) : <p className="analysis-missing">Соответствие в документах «после» не найдено.</p>}</div></div><p className="analysis-explanation">{change.explanation}</p><EvidenceList evidence={change.evidence} comparison={comparison} onOpen={setSource} /></article>;
-      }) : <div className="panel analysis-empty"><GitCompareArrows size={28} /><h3>Нет сопоставлений функций</h3><p>Проверьте извлечённый текст и предупреждения анализа.</p></div>)}
-      {tab === 'units' && (result.unit_changes.length ? result.unit_changes.map((change, index) => <article className="panel analysis-change" key={`${change.before_ids.join('-')}-${index}`}><div className="analysis-card-top"><span className={`analysis-tag tag-${change.status}`}>{unitLabels[change.status]}</span><span className="analysis-change-number">{String(index + 1).padStart(2, '0')}</span></div><div className="analysis-mapping"><div><h3>До изменений</h3>{change.before_ids.length ? change.before_ids.map((id) => <p className="analysis-unit-name" key={id}>{units.get(id)?.name ?? 'Подразделение не найдено в результате'}</p>) : <p className="analysis-missing">Соответствие в документах «до» не найдено.</p>}</div><ArrowRight size={20} className="analysis-mapping-arrow" /><div><h3>После изменений</h3>{change.after_ids.length ? change.after_ids.map((id) => <p className="analysis-unit-name" key={id}>{units.get(id)?.name ?? 'Подразделение не найдено в результате'}</p>) : <p className="analysis-missing">Соответствие в документах «после» не найдено.</p>}</div></div><p className="analysis-explanation">{change.explanation}</p><EvidenceList evidence={change.evidence} comparison={comparison} onOpen={setSource} /></article>) : <div className="panel analysis-empty"><BookOpen size={28} /><h3>Нет сопоставлений подразделений</h3><p>Проверьте, указаны ли названия подразделений в исходных документах.</p></div>)}
+      }) : <div className="panel analysis-empty"><GitCompareArrows size={28} /><h3>{functionFilter === 'all' ? 'Нет сопоставлений функций' : 'Нет функций с выбранным статусом'}</h3><p>{functionFilter === 'all' ? 'Проверьте извлечённый текст и предупреждения анализа.' : 'Выберите другой статус или покажите все функции.'}</p></div>)}
+      {tab === 'units' && (visibleUnits.length ? visibleUnits.map((change, index) => <article className="panel analysis-change" key={`${change.before_ids.join('-')}-${index}`}><div className="analysis-card-top"><span className={`analysis-tag tag-${change.status}`}>{unitLabels[change.status]}</span><span className="analysis-change-number">{String(index + 1).padStart(2, '0')}</span></div><div className="analysis-mapping"><div><h3>До изменений</h3>{change.before_ids.length ? change.before_ids.map((id) => <p className="analysis-unit-name" key={id}>{units.get(id)?.name ?? 'Подразделение не найдено в результате'}</p>) : <p className="analysis-missing">Соответствие в документах «до» не найдено.</p>}</div><ArrowRight size={20} className="analysis-mapping-arrow" /><div><h3>После изменений</h3>{change.after_ids.length ? change.after_ids.map((id) => <p className="analysis-unit-name" key={id}>{units.get(id)?.name ?? 'Подразделение не найдено в результате'}</p>) : <p className="analysis-missing">Соответствие в документах «после» не найдено.</p>}</div></div><p className="analysis-explanation">{change.explanation}</p><EvidenceList evidence={change.evidence} comparison={comparison} onOpen={setSource} /></article>) : <div className="panel analysis-empty"><BookOpen size={28} /><h3>{unitFilter === 'all' ? 'Нет сопоставлений подразделений' : 'Нет подразделений с выбранным статусом'}</h3><p>{unitFilter === 'all' ? 'Проверьте, указаны ли названия подразделений в исходных документах.' : 'Выберите другой статус или покажите все подразделения.'}</p></div>)}
     </div>
     {source && <SourceDialog key={source.fragment_id} comparison={comparison} evidence={source} onClose={() => setSource(null)} />}
   </section>;

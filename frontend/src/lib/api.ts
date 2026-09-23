@@ -118,11 +118,19 @@ export async function getHealth(signal?: AbortSignal): Promise<Health> {
   if (!['demo', 'llm'].includes(String(data.mode)) || typeof data.analysis_ready !== 'boolean') throw new Error('Не удалось определить режим сервера.');
   return data as unknown as Health;
 }
-export async function createComparison(signal?: AbortSignal): Promise<Comparison> {
-  return parseComparison(await request('/comparisons', { method: 'POST', body: JSON.stringify({ title: 'Анализ реорганизации' }), signal }));
+export async function createComparison(signal?: AbortSignal, title = 'Новое сравнение'): Promise<Comparison> {
+  return parseComparison(await request('/comparisons', { method: 'POST', body: JSON.stringify({ title }), signal }));
 }
 export async function getComparison(id: string, signal?: AbortSignal): Promise<Comparison> {
   return parseComparison(await request(comparisonPath(id), { signal }));
+}
+export async function listComparisons(limit = 20, offset = 0, signal?: AbortSignal): Promise<Comparison[]> {
+  const value = await request(`/comparisons?limit=${limit}&offset=${offset}`, { signal });
+  if (!Array.isArray(value)) throw new Error('Сервер вернул некорректную историю сравнений.');
+  return value.map(parseComparison);
+}
+export async function deleteComparison(id: string): Promise<void> {
+  await request(comparisonPath(id), { method: 'DELETE' });
 }
 export async function setCoverage(id: string, before: boolean, after: boolean, signal?: AbortSignal): Promise<Comparison> {
   return parseComparison(await request(`${comparisonPath(id)}/coverage`, {

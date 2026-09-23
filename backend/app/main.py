@@ -10,6 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, FastAPI, File, Query, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +33,7 @@ from app.models import (
     Side,
 )
 from app.parsing import SUPPORTED, parse_document
-from app.report import report_markdown
+from app.report import ReportExport, report_export, report_markdown
 from app.store import Store, now
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,9 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
         version="0.1.0",
         description="Комплекты до/после, функции, потенциальные отклонения и проверяемые источники.",
         lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
     )
     app.add_middleware(BodyLimitMiddleware, limit=(config.max_upload_mb + 1) * 1024**2)
     app.add_middleware(
@@ -164,6 +168,18 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
 
     router = APIRouter(prefix="/api/v1", dependencies=[Depends(authorize)])
 
+    @app.get("/openapi.json", include_in_schema=False, dependencies=[Depends(authorize)])
+    def openapi_schema():
+        return JSONResponse(app.openapi())
+
+    @app.get("/docs", include_in_schema=False, dependencies=[Depends(authorize)])
+    def swagger_docs():
+        return get_swagger_ui_html(openapi_url="/openapi.json", title=f"{app.title} — API")
+
+    @app.get("/redoc", include_in_schema=False, dependencies=[Depends(authorize)])
+    def redoc_docs():
+        return get_redoc_html(openapi_url="/openapi.json", title=f"{app.title} — API")
+
     @app.get("/health", response_model=Health, tags=["health"])
     def health():
         return Health(
@@ -186,6 +202,11 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
     @router.get("/comparisons/{comparison_id}", response_model=Comparison, tags=["comparisons"])
     def get_comparison(comparison_id: str):
         return app.state.store.get(comparison_id)
+
+    @router.delete("/comparisons/{comparison_id}", status_code=204, tags=["comparisons"])
+    def remove_comparison(comparison_id: str):
+        app.state.store.delete_comparison(comparison_id)
+        return Response(status_code=204)
 
     @router.patch(
         "/comparisons/{comparison_id}/coverage", response_model=Comparison, tags=["comparisons"]
@@ -215,7 +236,9 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
         filename = re.sub(
             r"[\x00-\x1f\x7f]", "", (file.filename or "document").replace("\\", "/").split("/")[-1]
         )[:200]
-        suffix = Path(filename).suffix.lower()
+        suffix = next(
+            (extension for extension in SUPPORTED if filename.lower().endswith(extension)), ""
+        )
         if suffix not in SUPPORTED:
             raise AppError("unsupported_format", "Поддерживаются DOCX, PDF, XLSX и TXT.", 415)
         document_id = uuid4().hex
@@ -312,7 +335,16 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
     def review_finding(comparison_id: str, finding_id: str, body: Review):
         return app.state.store.review(comparison_id, finding_id, body)
 
-    @router.get("/comparisons/{comparison_id}/report", tags=["analysis"])
+    @router.get(
+        "/comparisons/{comparison_id}/report",
+        tags=["analysis"],
+        responses={
+            200: {
+                "model": ReportExport,
+                "content": {"text/markdown": {"schema": {"type": "string"}}},
+            }
+        },
+    )
     def download_report(comparison_id: str, format: Literal["markdown", "json"] = "markdown"):
         store = app.state.store
         result = store.result(comparison_id)
@@ -322,7 +354,9 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
         }
         if format == "json":
             return Response(
-                result.model_dump_json(indent=2), media_type="application/json", headers=headers
+                report_export(store.get(comparison_id), result, store).model_dump_json(indent=2),
+                media_type="application/json",
+                headers=headers,
             )
         return Response(
             report_markdown(store.get(comparison_id), result, store),

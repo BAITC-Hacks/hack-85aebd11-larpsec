@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
+import tempfile
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -114,7 +116,15 @@ class Store:
                     (limit, offset),
                 )
             ]
-        return [self.get(x) for x in ids]
+        comparisons = []
+        for comparison_id in ids:
+            try:
+                comparisons.append(self.get(comparison_id))
+            except AppError as error:
+                # A concurrent deletion after the ID query must not break history.
+                if error.status != 404 or error.code != "not_found":
+                    raise
+        return comparisons
 
     def _editable(self, data: dict) -> None:
         if data["status"] not in {"draft", "failed"}:
@@ -195,6 +205,44 @@ class Store:
                 raise AppError("not_found", "Документ не найден.", 404)
             db.execute("DELETE FROM documents WHERE id=?", (document_id,))
         Path(row[0]).unlink(missing_ok=True)
+
+    def delete_comparison(self, comparison_id: str) -> None:
+        """Serialize deletion with queueing and keep uploads recoverable until commit."""
+        moved: list[tuple[Path, Path]] = []
+        retired: Path | None = None
+        try:
+            with self.connect(write=True) as db:
+                data = self._load(db, comparison_id)
+                if data["status"] in {"queued", "running"}:
+                    raise AppError(
+                        "comparison_busy",
+                        "Сравнение выполняется. Дождитесь завершения анализа перед удалением.",
+                        409,
+                    )
+                paths = [
+                    Path(row[0])
+                    for row in db.execute(
+                        "SELECT path FROM documents WHERE comparison_id=?", (comparison_id,)
+                    )
+                ]
+                if paths:
+                    retired = Path(tempfile.mkdtemp(prefix=".deleted-", dir=self.root))
+                    for source in paths:
+                        if source.exists():
+                            destination = retired / source.name
+                            source.rename(destination)
+                            moved.append((source, destination))
+                for table in ("reviews", "results", "documents"):
+                    db.execute(f"DELETE FROM {table} WHERE comparison_id=?", (comparison_id,))
+                db.execute("DELETE FROM comparisons WHERE id=?", (comparison_id,))
+        except Exception:
+            for source, destination in reversed(moved):
+                destination.rename(source)
+            if retired:
+                retired.rmdir()
+            raise
+        if retired:
+            shutil.rmtree(retired)
 
     def queue(self, comparison_id: str, mode: str) -> tuple[Comparison, bool]:
         with self.connect(write=True) as db:
@@ -285,6 +333,7 @@ class Store:
             raise AppError("not_found", "Замечание не найдено.", 404)
         record = ReviewRecord(**review.model_dump(), finding_id=finding_id, updated_at=now())
         with self.connect(write=True) as db:
+            self._load(db, comparison_id)
             db.execute(
                 "INSERT OR REPLACE INTO reviews VALUES (?,?,?)",
                 (comparison_id, finding_id, record.model_dump_json()),

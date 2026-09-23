@@ -89,7 +89,7 @@ export interface FunctionChange {
   explanation: string; evidence: Evidence[];
 }
 export interface Finding {
-  id: string; kind: 'potential_loss' | 'duplication' | 'conflict' | 'coverage_gap';
+  id: string; kind: 'potential_loss' | 'duplication' | 'conflict' | 'coverage_gap' | 'reporting_change';
   title: string; explanation: string; recommendation: string; function_ids: string[];
   evidence: Evidence[]; review_required: boolean;
 }

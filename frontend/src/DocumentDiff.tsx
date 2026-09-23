@@ -170,6 +170,7 @@ function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocu
     <div className="document-diff-stats" aria-label="Итоги сравнения текста">
       <div className="document-diff-stat document-diff-stat-removed"><span><Minus size={15} />Удалено строк</span><strong>{number(result.removedLines)}</strong></div>
       <div className="document-diff-stat document-diff-stat-added"><span><Plus size={15} />Добавлено строк</span><strong>{number(result.addedLines)}</strong></div>
+      <div className="document-diff-stat document-diff-stat-modified"><span><GitCompareArrows size={15} />Изменено строк</span><strong>{number(result.modifiedLines)}</strong></div>
       <div className="document-diff-stat"><span><GitCompareArrows size={15} />Блоков изменений</span><strong>{number(result.changeBlocks)}</strong></div>
     </div>
     {identical && <div className={`document-diff-identical${emptyTexts ? ' document-diff-no-text' : ''}`} role="status">
@@ -205,7 +206,7 @@ function Comparison({ before, after }: { before: ReadyDocument; after: ReadyDocu
           <button className="document-diff-icon-button" type="button" disabled={currentPage === pageCount - 1} onClick={() => goToPage(currentPage + 1)} aria-label="Следующая часть текста"><ChevronRight size={17} /></button>
         </div>}
       </div>
-      <p className="document-diff-footnote">Номера относятся к строкам этого просмотра. Пустые строки, различия в пробелах, форматирование и изображения не выделяются.{(beforeXlsx || afterXlsx) && ' В Excel сдвиг номеров строк в адресах ячеек не считается изменением; адреса и значения показаны как в источнике.'}</p>
+      <p className="document-diff-footnote">Номера относятся к строкам этого просмотра. Пустые строки, различия в пробелах, форматирование и изображения не выделяются.{(beforeXlsx || afterXlsx) && ' В Excel сравниваются значения ячеек. Сдвиг адресов не считается изменением; исходный текст сохранён без изменений.'}</p>
     </> : !emptyTexts && <div className="document-diff-filter-empty panel"><Check size={22} /><p>В выбранной паре нет изменённых строк.</p><button className="text-button" type="button" onClick={() => setOnlyChanges(false)}>Показать весь текст <ArrowRight size={15} /></button></div>}
   </div>;
 }

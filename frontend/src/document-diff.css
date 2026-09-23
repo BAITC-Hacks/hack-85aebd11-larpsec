@@ -18,7 +18,9 @@
 .document-diff-warnings p { margin-top: 3px; }
 .document-diff-warnings-toggle { margin: 0 17px 16px; font-size: 12px; }
 .document-diff-result { min-width: 0; }
-.document-diff-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 21px; }
+.document-diff-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 21px; }
+.document-diff-stat-modified { border-color: #e8dfbf; background: #fffdf3; }
+.document-diff-stat-modified > strong, .document-diff-stat-modified > span { color: #8e7538; }
 .document-diff-stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: 10px; background: white; padding: 17px 19px; }
 .document-diff-stat > span { display: inline-flex; align-items: center; gap: 6px; color: #687763; font-size: 12px; line-height: 1.6; }
 .document-diff-stat > strong { color: #49623b; font-size: 27px; font-weight: 500; }
@@ -84,7 +86,7 @@
   .document-diff-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
   .document-diff-heading h2 { font-size: 25px; }
   .document-diff-selectors { grid-template-columns: minmax(0, 1fr); padding: 17px; gap: 17px; }
-  .document-diff-stats { gap: 7px; }
+  .document-diff-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
   .document-diff-stat { padding: 12px 10px; }
   .document-diff-stat > span { font-size: 10px; gap: 4px; }
   .document-diff-stat > span > svg { display: none; }

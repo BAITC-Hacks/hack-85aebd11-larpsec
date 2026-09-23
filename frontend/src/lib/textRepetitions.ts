@@ -50,7 +50,7 @@ export function findTextRepetitions(documents: WorkspaceDocument[]): TextRepetit
     for (const [index, paragraph] of document.result.paragraphs.entries()) {
       if (!paragraph.id || seenFragments.has(paragraph.id)) continue;
       seenFragments.add(paragraph.id);
-      if (normalized(paragraph.locator ?? '').startsWith('колонтитул')) continue;
+      if (/^(?:(?:верхний|нижний)\s+)?колонтитул/u.test(normalized(paragraph.locator ?? ''))) continue;
       const body = paragraphBody(paragraph, isXlsx);
       if (body.length < 40 || (body.match(/\p{L}[\p{L}\p{M}]*/gu)?.length ?? 0) < 5) continue;
 

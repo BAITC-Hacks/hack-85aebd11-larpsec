@@ -33,7 +33,7 @@ def test_xlsx_preserves_sheet_cells_and_warns_on_formulas(tmp_path, settings):
     book.save(path)
     parsed = parse_document(path, "doc", settings)
     assert parsed.fragments[0].sheet == "Функции" and parsed.fragments[0].cell_range == "A1:B1"
-    assert "B1: Проверяет отчётность" in parsed.fragments[0].text
+    assert parsed.fragments[0].text == "Департамент | Проверяет отчётность"
     assert not parsed.complete and parsed.warnings
 
 
@@ -133,7 +133,8 @@ def test_word_manual_line_break_and_tab_do_not_merge_owner_and_function(tmp_path
     ]
     draft = extract_demo(parsed.fragments)
     assert draft.functions[0].owner == "Служба аудита"
-    assert "Проверяет\tсохранность" in draft.functions[0].action
+    assert "Проверяет сохранность" in draft.functions[0].action
+    assert "Проверяет\tсохранность" in draft.functions[0].evidence[0].quote
 
 
 @pytest.mark.parametrize("inline", [False, True])

@@ -41,3 +41,16 @@
 .connection-settings form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .connection-settings label { display: flex; flex-direction: column; gap: 8px; }
 .connection-settings input { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; max-width: 100%; }
+.preview-caution { background: #fff7eb; border-color: #ebddc5; }
+.preview-caution strong, .preview-caution p { color: #876b41; }
+.preview-caution .success-icon, .preview-caution .complete-badge { color: #8d7042; background: #f6ecd5; }
+.history-list { display: grid; gap: 15px; margin-bottom: 20px; }
+.history-card { padding: 22px; min-width: 0; }
+.history-card-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.history-card h3 { font-size: 17px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
+.history-meta { color: var(--muted); font-size: 12px; line-height: 1.8; margin-top: 10px; }
+.history-documents { color: #687b5d; font-size: 12px; line-height: 1.8; margin-top: 10px; overflow-wrap: anywhere; }
+.history-card-actions, .history-delete-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin-top: 20px; }
+.history-card-actions .text-button { font-size: 12px; }
+.history-delete-actions { justify-content: flex-end; }
+.history-loading { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: #6d7c64; font-size: 13px; }

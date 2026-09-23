@@ -102,7 +102,12 @@ class Analyzer:
                         units[uid] = Unit(**draft.model_dump(), id=uid, side=doc.side)
                 for draft in extraction.functions:
                     validate_evidence(draft.evidence, known_fragments)
-                    owners = [
+                    exact_owners = [
+                        u
+                        for u in units.values()
+                        if u.side == doc.side and normalized(draft.owner) == normalized(u.name)
+                    ]
+                    owners = exact_owners or [
                         u
                         for u in units.values()
                         if u.side == doc.side
@@ -111,7 +116,7 @@ class Analyzer:
                     if len(owners) != 1:
                         raise AppError(
                             "ambiguous_owner",
-                            "Модель не определила однозначного владельца функции.",
+                            "Не удалось однозначно определить владельца функции.",
                             502,
                         )
                     unit = owners[0]
@@ -139,18 +144,25 @@ class Analyzer:
                         reporting.append(item)
                 preceding.extend(chunk)
         if not functions:
-            raise AppError(
-                "no_functions",
-                "В документах не извлечены функции. Для свободной структуры используйте llm или проверьте содержимое файлов.",
+            warnings.append(
+                "Структура функций не распознана. Проверьте заголовки владельцев и используйте сравнение текста документов."
             )
-        if len(functions) > self.settings.max_analysis_functions:
+        counts = {
+            side: sum(f.side == side for f in functions.values()) for side in ("before", "after")
+        }
+        if max(counts.values()) > self.settings.max_analysis_functions:
             raise AppError(
                 "too_many_functions",
-                "Слишком много функций для одного сравнения; разделите комплект по области анализа.",
+                f"Слишком много функций: до — {counts['before']}, после — {counts['after']}; "
+                f"лимит на каждую сторону — {self.settings.max_analysis_functions}. Разделите комплект по области анализа.",
             )
         progress("comparing", 60)
         unit_list, function_list = list(units.values()), list(functions.values())
-        if self.settings.analysis_mode == "llm":
+        if not functions:
+            # Reporting and recognized subjects remain comparable without duties.
+            plan = compare_demo(unit_list, [])
+            plan.warnings = []
+        elif self.settings.analysis_mode == "llm":
             # Include source texts, not just extracted paraphrases: the model can inspect scope.
             cited = {
                 e.fragment_id
@@ -189,16 +201,30 @@ class Analyzer:
             "Выводы носят рекомендательный характер. Проверка цитат подтверждает их наличие, но не заменяет оценку смысла ответственным сотрудником."
         )
         changes, findings = function_changes(plan, functions, coverage)
+        findings.extend(reporting_changes(plan, units, reporting, coverage))
+        if not functions:
+            findings.append(
+                Finding(
+                    id=stable_id("finding", "unrecognized_structure", comparison.id),
+                    kind="coverage_gap",
+                    title="Структура функций не распознана",
+                    explanation="Не удалось извлечь функции с определёнными владельцами. Это не означает, что функции отсутствуют или были удалены.",
+                    recommendation="Проверьте предупреждения и заголовки подразделений; сравните исходный текст документов.",
+                    function_ids=[],
+                    evidence=[],
+                )
+            )
         unit_changes = structure_changes(plan, units)
         summary = (
-            f"Сопоставлено подразделений и должностей: до — {sum(u.side == 'before' for u in unit_list)}, "
+            f"Найдено подразделений и должностей: до — {sum(u.side == 'before' for u in unit_list)}, "
             f"после — {sum(u.side == 'after' for u in unit_list)}. "
             f"Извлечено функций: до — {sum(f.side == 'before' for f in function_list)}, "
             f"после — {sum(f.side == 'after' for f in function_list)}. "
             f"Потенциальные потери: {sum(f.kind == 'potential_loss' for f in findings)}; "
             f"неопределённые соответствия: {sum(f.kind == 'coverage_gap' for f in findings)}; "
             f"возможные дублирования: {sum(f.kind == 'duplication' for f in findings)}; "
-            f"потенциальные конфликты: {sum(f.kind == 'conflict' for f in findings)}. "
+            f"потенциальные конфликты: {sum(f.kind == 'conflict' for f in findings)}; "
+            f"изменения подчинения: {sum(f.kind == 'reporting_change' for f in findings)}. "
             "Все замечания требуют проверки по источникам."
         )
         if self.settings.analysis_mode == "demo":
@@ -219,6 +245,85 @@ class Analyzer:
             coverage=coverage,
             summary=summary,
         )
+
+
+def reporting_changes(
+    plan: AnalysisPlan,
+    units: dict[str, Unit],
+    reporting: list[Reporting],
+    coverage: dict[str, bool],
+) -> list[Finding]:
+    """Compare reporting per subject and kind, keeping dual subordination separate."""
+
+    def resolve(name: str, side: str) -> str:
+        exact = [
+            u for u in units.values() if u.side == side and normalized(u.name) == normalized(name)
+        ]
+        candidates = exact or [
+            u
+            for u in units.values()
+            if u.side == side and normalized(name) in {normalized(a) for a in u.aliases}
+        ]
+        return candidates[0].id if len(candidates) == 1 else normalized(name)
+
+    successors: dict[str, set[str]] = defaultdict(set)
+    for link in plan.unit_links:
+        successors[link.before_id].add(link.after_id)
+
+    def supervisor_name(key: str) -> str:
+        return normalized(units[key].name) if key in units else key
+
+    groups: dict[tuple[str, str, str], list[Reporting]] = defaultdict(list)
+    for item in reporting:
+        groups[(item.side, resolve(item.subject, item.side), item.kind)].append(item)
+    subject_pairs = {(link.before_id, link.after_id) for link in plan.unit_links}
+    # Also support reporting-only subjects not represented by extracted Unit records.
+    before_subjects = {subject for side, subject, _ in groups if side == "before"}
+    after_subjects = {subject for side, subject, _ in groups if side == "after"}
+    subject_pairs.update((subject, subject) for subject in before_subjects & after_subjects)
+    findings = []
+    labels = {
+        "functional": "Функциональное",
+        "administrative": "Административное",
+        "unspecified": "Неуточнённое",
+    }
+    for old_subject, new_subject in sorted(subject_pairs):
+        for kind in labels:
+            old = groups.get(("before", old_subject, kind), [])
+            new = groups.get(("after", new_subject, kind), [])
+            if not old and not new:
+                continue
+            old_supervisors = set()
+            for item in old:
+                supervisor = resolve(item.supervisor, "before")
+                targets = successors.get(supervisor)
+                if not targets:
+                    # A supervisor need not have its own unit declaration on both sides.
+                    targets = {
+                        supervisor if supervisor in units else resolve(item.supervisor, "after")
+                    }
+                old_supervisors.update(supervisor_name(key) for key in targets)
+            new_supervisors = {supervisor_name(resolve(item.supervisor, "after")) for item in new}
+            if old_supervisors == new_supervisors:
+                continue
+            subject = (new or old)[0].subject
+            old_names = ", ".join(dict.fromkeys(item.supervisor for item in old)) or "не указано"
+            new_names = ", ".join(dict.fromkeys(item.supervisor for item in new)) or "не указано"
+            explanation = f"{labels[kind]} подчинение: {old_names} → {new_names}."
+            if (not old or not new) and not all(coverage.values()):
+                explanation += " Комплекты или извлечение неполны: отсутствие записи не доказывает отмену или введение подчинения."
+            findings.append(
+                Finding(
+                    id=stable_id("finding", "reporting_change", old_subject, new_subject, kind),
+                    kind="reporting_change",
+                    title=f"Изменение подчинения: {subject}",
+                    explanation=explanation,
+                    recommendation="Проверить полномочия руководителей и влияние изменения на независимость подразделения.",
+                    function_ids=[],
+                    evidence=unique_evidence([e for item in [*old, *new] for e in item.evidence]),
+                )
+            )
+    return findings
 
 
 def validate_plan(
@@ -403,9 +508,9 @@ def function_changes(plan: AnalysisPlan, functions: dict[str, Function], coverag
                 Finding(
                     id=stable_id("finding", "loss", old.id),
                     kind="potential_loss" if complete else "coverage_gap",
-                    title="Возможная потеря функции"
+                    title=f"Возможная потеря: {old.owner} — {old.action}"
                     if complete
-                    else "Недостаточно данных о сохранении функции",
+                    else f"Недостаточно данных: {old.owner} — {old.action}",
                     explanation=explanation,
                     function_ids=[old.id],
                     evidence=old.evidence,
@@ -428,5 +533,12 @@ def function_changes(plan: AnalysisPlan, functions: dict[str, Function], coverag
         if fid in seen:
             continue
         seen.add(fid)
-        findings.append(Finding(id=fid, **issue.model_dump()))
+        data = issue.model_dump()
+        actions = "; ".join(dict.fromkeys(functions[x].action for x in issue.function_ids))
+        title_has_action = any(
+            normalized(functions[x].action) in normalized(data["title"]) for x in issue.function_ids
+        )
+        if actions and not title_has_action:
+            data["title"] += ": " + actions
+        findings.append(Finding(id=fid, **data))
     return changes, findings

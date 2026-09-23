@@ -170,7 +170,7 @@ class FunctionChange(Model):
 
 class Finding(Model):
     id: str
-    kind: Literal["potential_loss", "duplication", "conflict", "coverage_gap"]
+    kind: Literal["potential_loss", "duplication", "conflict", "coverage_gap", "reporting_change"]
     title: str
     explanation: str
     recommendation: str

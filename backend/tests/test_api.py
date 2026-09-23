@@ -47,7 +47,9 @@ def test_full_scenario_with_sources_and_reviews(client, demo_files):
     )
     report = client.get(f"/api/v1/comparisons/{cid}/report")
     assert report.status_code == 200
-    assert "before.docx" in report.text and "Источник" in report.text and "confirmed" in report.text
+    assert (
+        "before.docx" in report.text and "Источник" in report.text and "Подтверждено" in report.text
+    )
     assert (
         "Запрет — Департамент контроля качества аудита и методологии: утверждать платежи"
         in report.text

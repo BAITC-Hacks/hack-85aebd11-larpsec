@@ -94,7 +94,7 @@ test('completed comparison can retry a source preview after an interrupted reloa
   await expect(page.getByRole('region', { name: 'Результат сравнения', exact: true })).toBeVisible({ timeout: 20_000 });
   await page.route('**/fragments?*', (route) => route.fulfill({ status: 503 }));
   await page.reload();
-  await page.locator('.document-name').filter({ hasText: 'before.docx' }).click();
+  await page.locator('.document-name').filter({ hasText: 'Положение — до изменений.docx' }).click();
   await expect(page.getByRole('heading', { name: 'Не удалось загрузить текст' })).toBeVisible();
   await page.unroute('**/fragments?*');
   await page.getByRole('button', { name: 'Повторить загрузку текста' }).click();

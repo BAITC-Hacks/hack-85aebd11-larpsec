@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, FileCheck2, FileText, Files, GitCompareArrows, Layers3, LoaderCircle, LockKeyhole, Plus, Search, ShieldCheck, Sparkles, Trash2, Upload, X, AlertCircle, BookOpen, List, PanelLeftClose } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Check, CheckCheck, ChevronDown, ChevronRight, CircleHelp, FileCheck2, FileText, Files, GitCompareArrows, History, Layers3, LoaderCircle, LockKeyhole, Plus, Search, ShieldCheck, Sparkles, Trash2, Upload, X, AlertCircle, BookOpen, List, PanelLeftClose } from 'lucide-react';
 import ComparisonResults from './ComparisonResults';
 import DocumentDiff from './DocumentDiff';
+import ComparisonHistory from './ComparisonHistory';
 import { ConnectionSettings } from './ConnectionSettings';
 import { ComparisonControls } from './ComparisonControls';
 import { DOCX_MIME, DOCUMENT_ACCEPT, DOCUMENT_FORMATS, downloadText, formatBytes, plural } from './lib/documents';
 import type { DocumentPhase, WorkspaceDocument } from './lib/types';
 import { useDocuments } from './useDocuments';
+import { SAMPLE_FILENAMES, pageSubtitle, previewStatus } from './lib/presentation';
+import { storedChoice, useStoredChoice } from './lib/preferences';
 
 const phaseLabels = { before: 'До изменений', after: 'После изменений' };
 const statusLabels = { selected: 'Готов к загрузке', uploading: 'Отправляется', processing: 'Обрабатывается', ready: 'Текст извлечён', error: 'Ошибка обработки' };
@@ -41,7 +44,7 @@ function Guide({ onClose }: { onClose: () => void }) {
   </dialog>;
 }
 
-function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack: () => void; onCompare: () => void }) {
+export function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack: () => void; onCompare: () => void }) {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'text' | 'sections'>('text');
   const resultHeading = useRef<HTMLHeadingElement>(null);
@@ -50,12 +53,13 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
     resultHeading.current?.focus({ preventScroll: true });
   }, []);
   const result = doc.result!;
+  const preview = previewStatus(doc);
   const sections = result.paragraphs.filter((p) => p.section);
   const paragraphs = (tab === 'sections' ? sections : result.paragraphs).filter((p) => p.text.toLocaleLowerCase('ru').includes(query.toLocaleLowerCase('ru')));
   return <section className="result-view" aria-label="Результат обработки">
     <div className="result-navigation"><button className="text-button" onClick={onBack}><ArrowLeft size={17} />К загрузке документов</button><span className={`mode-label ${doc.source === 'example' ? 'example-label' : ''}`}>{doc.source === 'example' ? 'Учебный пример' : doc.source === 'local' ? 'Локальный просмотр' : 'Обработано на сервере'}</span></div>
     <div className="result-header"><div className="result-heading"><FileIcon name={doc.name} /><div><h2 ref={resultHeading} tabIndex={-1}>{doc.name}</h2><p>{formatBytes(doc.sizeBytes)}<span>·</span>{phaseLabels[doc.phase]}<span>·</span>{doc.name.split('.').pop()?.toUpperCase()}</p></div></div><button className="button secondary" onClick={() => downloadText(doc.name, result.text)}><ArrowDownToLine size={16} />Скачать текст</button></div>
-    <div className="success-banner" role="status"><span className="success-icon"><CheckCheck size={20} /></span><div><strong>Документ прочитан</strong><p>Извлечено {result.paragraphs.length} {plural(result.paragraphs.length, ['фрагмент', 'фрагмента', 'фрагментов'])}. Текст готов к просмотру.</p></div><span className="complete-badge">ГОТОВО</span></div>
+    <div className={`success-banner ${preview.caution ? 'preview-caution' : ''}`} role="status"><span className="success-icon">{preview.caution ? <AlertCircle size={20} /> : <CheckCheck size={20} />}</span><div><strong>{preview.heading}</strong><p>Извлечено {result.paragraphs.length} {plural(result.paragraphs.length, ['фрагмент', 'фрагмента', 'фрагментов'])}. {preview.description}</p></div><span className="complete-badge">{preview.badge}</span></div>
     {doc.source === 'example' && <div className="notice example-notice"><Sparkles size={18} /><p>Это учебный документ для знакомства с интерфейсом. Он не является полной редакцией положения и не содержит результатов ИИ-анализа.</p></div>}
     {result.warnings.map((warning, i) => <div className="notice warning" key={i}><AlertCircle size={18} /><p>{warning}</p></div>)}
     <div className="reader-grid">
@@ -68,7 +72,7 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
         <div className="reader-footer"><ShieldCheck size={14} />Текст источника · без интерпретации</div>
       </div>
       <aside className="result-aside">
-        <div className="panel document-summary"><span className="eyebrow">О ДОКУМЕНТЕ</span><h3>Всё на своём месте</h3><dl><div><dt>Фрагменты</dt><dd>{result.paragraphs.length}</dd></div><div><dt>Нумерованные пункты</dt><dd>{sections.length}</dd></div><div><dt>Символы</dt><dd>{result.text.length.toLocaleString('ru-RU')}</dd></div><div><dt>Версия</dt><dd>{phaseLabels[doc.phase]}</dd></div></dl></div>
+        <div className="panel document-summary"><span className="eyebrow">О ДОКУМЕНТЕ</span><h3>{preview.caution ? 'Требуется проверка оригинала' : 'Всё на своём месте'}</h3>{preview.caution && <p>{preview.description}</p>}<dl><div><dt>Фрагменты</dt><dd>{result.paragraphs.length}</dd></div><div><dt>Нумерованные пункты</dt><dd>{sections.length}</dd></div><div><dt>Символы</dt><dd>{result.text.length.toLocaleString('ru-RU')}</dd></div><div><dt>Версия</dt><dd>{phaseLabels[doc.phase]}</dd></div></dl></div>
         <div className="reading-note"><BookOpen size={21} /><h3>Сохраняем смысл источника</h3><p>Фрагменты и адреса источников получены с сервера. Для PDF указаны страницы, для Excel — листы и ячейки, для TXT — номера строк.</p><p>Таблицы отображаются как текст. Для проверки оформления используйте оригинал.</p></div>
         <div className="next-step"><span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП</span><GitCompareArrows size={23} /><h3>Сравнение версий</h3><p>Откройте документы рядом, чтобы увидеть удалённые и добавленные строки. Затем можно перейти к анализу функций.</p><button className="text-button" onClick={onCompare}>К сравнению <ArrowRight size={16} /></button></div>
       </aside>
@@ -77,9 +81,19 @@ function ResultView({ doc, onBack, onCompare }: { doc: WorkspaceDocument; onBack
 }
 
 export default function App() {
-  const { documents, add, process, cancel, remove, update, comparison, result, health, loading, error: serverError, locked, analyze, newComparison, refresh } = useDocuments();
-  const [view, setView] = useState<'documents' | 'comparison'>('documents');
-  const [comparisonView, setComparisonView] = useState<'text' | 'analysis'>('text');
+  const { documents, add, process, cancel, remove, update, comparison, result, health, loading, error: serverError, locked, analyze, newComparison, openComparison, refresh } = useDocuments();
+  const [view, setView] = useStoredChoice('larpsec.workspaceView', ['documents', 'comparison', 'history'] as const, 'documents');
+  const [comparisonView, setComparisonView] = useStoredChoice('larpsec.comparisonView', ['text', 'analysis'] as const, 'text');
+  const restoredView = useRef(false);
+  useEffect(() => {
+    if (!loading && comparison && !restoredView.current) {
+      restoredView.current = true;
+      if (!storedChoice('larpsec.workspaceView', ['documents', 'comparison', 'history'])) {
+        setView(comparison.status === 'completed' ? 'comparison' : 'documents');
+        setComparisonView(comparison.status === 'completed' ? 'analysis' : 'text');
+      }
+    }
+  }, [loading, comparison, setView, setComparisonView]);
   const [working, setWorking] = useState(false);
   const [beforeComplete, setBeforeComplete] = useState(false);
   const [afterComplete, setAfterComplete] = useState(false);
@@ -148,7 +162,7 @@ export default function App() {
     for (const side of ['before', 'after'] as const) {
       const response = await fetch(`/examples/${side}.docx`);
       if (!response.ok) throw new Error('Не удалось загрузить учебный комплект.');
-      const doc = await add(new File([await response.blob()], `${side}.docx`, { type: DOCX_MIME }), side, true);
+      const doc = await add(new File([await response.blob()], SAMPLE_FILENAMES[side], { type: DOCX_MIME }), side, true);
       await process(doc);
     }
     setBeforeComplete(true); setAfterComplete(true); showTextComparison();
@@ -160,16 +174,16 @@ export default function App() {
       <a href="#" className="brand-link" aria-label="Larpsec — документы" onClick={(e) => { e.preventDefault(); newDocument(); }}><Brand /></a>
       <div className="workspace-card"><span className="workspace-icon"><Layers3 size={19} /></span><div><strong>Рабочее пространство</strong><span>Команда Larpsec</span></div></div>
       <span className="nav-caption">ПРОЕКТ</span>
-      <nav aria-label="Главная навигация"><button className={`nav-item ${view === 'documents' ? 'active' : ''}`} aria-label="Документы" onClick={newDocument}><Files size={19} /><span>Документы</span><span className="nav-count">{documents.length}</span></button><button className={`nav-item ${view === 'comparison' ? 'active' : ''}`} aria-label="Сравнение" onClick={() => { setView('comparison'); setSelectedId(null); }}><GitCompareArrows size={19} /><span>Сравнение</span>{result && <span className="nav-count">{result.findings.length}</span>}</button></nav>
+      <nav aria-label="Главная навигация"><button className={`nav-item ${view === 'documents' ? 'active' : ''}`} aria-label="Документы" onClick={newDocument}><Files size={19} /><span>Документы</span><span className="nav-count">{documents.length}</span></button><button className={`nav-item ${view === 'comparison' ? 'active' : ''}`} aria-label="Сравнение" onClick={() => { setView('comparison'); setSelectedId(null); }}><GitCompareArrows size={19} /><span>Сравнение</span>{result && <span className="nav-count">{result.findings.length}</span>}</button><button className={`nav-item ${view === 'history' ? 'active' : ''}`} aria-label="История" disabled={busy || working || choosing || loading} onClick={() => { setView('history'); setSelectedId(null); }}><History size={19} /><span>История</span></button></nav>
       <div className="sidebar-bottom"><div className="sidebar-note"><div className="sidebar-orbit" aria-hidden="true"><span /><span /><span /><i /></div><span className="eyebrow">МЕНЬШЕ РУТИНЫ.</span><h3>Больше ясности<br />в вашей структуре.</h3><p>От отдельных документов<br />к целостной картине.</p></div><button className="help-button" onClick={() => setGuide(true)}><CircleHelp size={18} />Как это работает<ArrowUpRight size={16} /></button><div className="sidebar-user"><span className="avatar">L</span><div><strong>Команда Larpsec</strong><span>HackAlem AI</span></div><ShieldCheck size={17} /></div></div>
     </aside>
     <div className="main-shell">
-      <header className="topbar"><div className="breadcrumb"><PanelLeftClose size={18} /><span>Рабочее пространство</span><ChevronRight size={14} /><strong>{view === 'comparison' ? 'Сравнение' : 'Документы'}</strong></div><div className="topbar-right"><span className="event-tag">HACKALEM <span>AI</span></span><span className="header-divider" /><span className="avatar small-avatar">L</span></div></header>
+      <header className="topbar"><div className="breadcrumb"><PanelLeftClose size={18} /><span>Рабочее пространство</span><ChevronRight size={14} /><strong>{view === 'history' ? 'История' : view === 'comparison' ? 'Сравнение' : 'Документы'}</strong></div><div className="topbar-right"><span className="event-tag">HACKALEM <span>AI</span></span><span className="header-divider" /><span className="avatar small-avatar">L</span></div></header>
       <main id="main">
-        <div className="page-heading"><div><span className="eyebrow">АНАЛИЗ ОРГАНИЗАЦИОННОЙ СТРУКТУРЫ</span><h1>{view === 'comparison' ? 'Сравнение' : 'Документы'}<span className="heading-period">.</span></h1><p>{view === 'comparison' && comparisonView === 'text' ? 'Две версии рядом. Каждое изменение на своём месте.' : 'Порядок в документах — первый шаг к ясной структуре.'}</p></div><span className="mode-label"><span className="mode-dot" />{view === 'comparison' && comparisonView === 'text' ? 'Сравнение текста' : health ? health.mode === 'demo' ? 'Демонстрационный анализ' : 'ИИ-анализ на сервере' : 'Подключение к серверу'}</span></div>
+        <div className="page-heading"><div><span className="eyebrow">АНАЛИЗ ОРГАНИЗАЦИОННОЙ СТРУКТУРЫ</span><h1>{view === 'history' ? 'История' : view === 'comparison' ? 'Сравнение' : 'Документы'}<span className="heading-period">.</span></h1><p>{pageSubtitle(view, comparisonView)}</p></div><span className="mode-label"><span className="mode-dot" />{view === 'comparison' && comparisonView === 'text' ? 'Сравнение текста' : health ? health.mode === 'demo' ? 'Демонстрационный анализ' : 'ИИ-анализ на сервере' : 'Подключение к серверу'}</span></div>
         {(error || serverError || (!health && !loading)) && <div className="inline-error integration-error" role="alert"><AlertCircle size={18} /><p>{error || serverError || 'Не удалось определить режим сервера. Повторите подключение.'}</p><button className="text-button" onClick={() => void run(refresh)}>Повторить подключение</button></div>}
-        <ComparisonControls comparison={comparison} documents={documents} health={health} result={result} disabled={unavailable} loading={loading || working} beforeComplete={beforeComplete} afterComplete={afterComplete} setBeforeComplete={setBeforeComplete} setAfterComplete={setAfterComplete} onAnalyze={() => void startAnalysis()} onNew={() => void startNew()} onShow={showAnalysis} onTextDiff={showTextComparison} onSample={() => void samplePair()} />
-        {view === 'comparison' ? <div className="comparison-workspace">
+        {view !== 'history' && <ComparisonControls comparison={comparison} documents={documents} health={health} result={result} disabled={unavailable} loading={loading || working} beforeComplete={beforeComplete} afterComplete={afterComplete} setBeforeComplete={setBeforeComplete} setAfterComplete={setAfterComplete} onAnalyze={() => void startAnalysis()} onNew={() => void startNew()} onShow={showAnalysis} onTextDiff={showTextComparison} onSample={() => void samplePair()} />}
+        {view === 'history' ? <ComparisonHistory activeId={comparison?.id} disabled={busy || working || choosing || loading} onOpen={async (item) => { await openComparison(item.id); setSelectedId(null); setView('comparison'); setComparisonView(item.status === 'completed' ? 'analysis' : 'text'); }} onDeleted={async (id) => { if (comparison?.id === id) { await newComparison(); setSelectedId(null); } }} /> : view === 'comparison' ? <div className="comparison-workspace">
           <div className="comparison-view-tabs" role="group" aria-label="Режим сравнения">
             <button type="button" className={comparisonView === 'text' ? 'active' : ''} aria-pressed={comparisonView === 'text'} onClick={() => setComparisonView('text')}><FileText size={18} />Текст до / после</button>
             <button type="button" className={comparisonView === 'analysis' ? 'active' : ''} aria-pressed={comparisonView === 'analysis'} onClick={() => setComparisonView('analysis')}><GitCompareArrows size={18} />Анализ функций{result && <span>{result.findings.length}</span>}</button>
@@ -195,9 +209,9 @@ export default function App() {
           </div>
           <div className="stage-strip"><div><span className="stage-icon"><Files size={18} /></span><span><strong>Документы</strong><small>Собираем исходные данные</small></span><span className="stage-current">СЕЙЧАС</span></div><ChevronRight size={17} /><div className="available-stage"><span className="stage-icon"><GitCompareArrows size={18} /></span><span><strong>Сравнение</strong><small>Находим изменения функций</small></span></div><ChevronRight size={17} /><div className="available-stage"><span className="stage-icon"><FileCheck2 size={18} /></span><span><strong>Заключение</strong><small>Выводы с подтверждениями</small></span></div></div>
         </>}
-        <section className="library" aria-labelledby="library-title"><div className="library-heading"><div><h2 id="library-title">Документы сравнения <span>{documents.length}</span></h2><p>{completed ? `${completed} ${plural(completed, ['документ обработан', 'документа обработано', 'документов обработано'])}` : 'Загруженные файлы появятся здесь'} · отправленные файлы сохранены на сервере</p></div>{documents.length > 0 && <button className="button secondary compact" disabled={unavailable} onClick={newDocument}><Plus size={16} />Добавить документ</button>}</div>
+        {view !== 'history' && <section className="library" aria-labelledby="library-title"><div className="library-heading"><div><h2 id="library-title">Документы сравнения <span>{documents.length}</span></h2><p>{completed ? `${completed} ${plural(completed, ['документ обработан', 'документа обработано', 'документов обработано'])}` : 'Загруженные файлы появятся здесь'} · отправленные файлы сохранены на сервере</p></div>{documents.length > 0 && <button className="button secondary compact" disabled={unavailable} onClick={newDocument}><Plus size={16} />Добавить документ</button>}</div>
           {documents.length > 0 ? <div className="panel document-list"><div className="library-tools"><label className="library-search"><Search size={16} /><input aria-label="Найти документ" placeholder="Поиск по названию…" value={query} onChange={(e) => setQuery(e.target.value)} /></label><label className="filter-control"><select aria-label="Фильтр по версии" value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Все версии</option><option value="before">До изменений</option><option value="after">После изменений</option></select><ChevronDown size={14} /></label></div><div className="table-scroll"><table><thead><tr><th>НАЗВАНИЕ ДОКУМЕНТА</th><th>ВЕРСИЯ</th><th>СТАТУС</th><th><span className="visually-hidden">Действия</span></th></tr></thead><tbody>{filtered.map((doc) => <tr key={doc.id}><td><button className="document-name" onClick={() => selectDocument(doc)}><FileIcon small name={doc.name} /><span><strong>{doc.name}</strong><small>{formatBytes(doc.sizeBytes)}{doc.source === 'example' ? ' · Учебный пример' : ''}</small></span></button></td><td><span className={`phase-tag phase-${doc.phase}`}>{phaseLabels[doc.phase]}</span></td><td><Status doc={doc} /></td><td><button className="icon-button delete-button" disabled={unavailable} aria-label={`Удалить ${doc.name} из сравнения`} onClick={() => void removeDocument(doc.id)}><Trash2 size={16} /></button></td></tr>)}</tbody></table></div>{!filtered.length && <p className="list-empty">Документы не найдены. Измените поиск или фильтр.</p>}</div> : <div className="empty-library"><div className="empty-file-stack"><Files size={27} /></div><div><strong>Здесь пока чистый лист</strong><p>Загрузите первый документ или начните с учебного примера.</p></div><button className="text-button" disabled={unavailable} onClick={() => void example()}>Открыть пример<ArrowRight size={16} /></button></div>}
-        </section>
+        </section>}
         <ConnectionSettings onReconnect={refresh} disabled={busy || working || choosing || loading} />
         <footer className="page-footer"><span>Larpsec <span> / </span> Осмысленные организационные изменения</span><span>Сделано для HackAlem AI <span className="footer-dot" /></span></footer>
       </main>
