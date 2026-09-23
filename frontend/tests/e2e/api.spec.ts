@@ -1,66 +1,102 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
-test('sends DOCX and version, polls the server and preserves source text', async ({ page }) => {
-  let uploadBody = '';
-  let polls = 0;
-  await page.route('**/api/documents', async (route) => {
-    uploadBody = route.request().postData() || '';
-    await route.fulfill({ status: 202, json: { id: 'server-1', status: 'queued' } });
-  });
-  await page.route('**/api/documents/server-1', async (route) => {
-    polls++;
-    await route.fulfill({ json: polls === 1 ? { id: 'server-1', status: 'processing' } : {
-      id: 'server-1', status: 'ready', result: { text: '5.5.3. Серверный текст отчёта', paragraphs: [{ id: 'source-42', section: '5.5.3', text: '5.5.3. Серверный текст отчёта' }] },
-    } });
+test('upload errors allow retry against the real server without local fallback', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/api/v1/comparisons/*/documents?side=*', async (route) => {
+    requests++;
+    if (requests === 1) await route.fulfill({ status: 413, json: { error: { code: 'upload_too_large', message: 'Сервер отклонил размер файла.' } } });
+    else await route.continue();
   });
   await page.goto('/');
-  await expect(page.getByText('Серверный режим')).toBeVisible();
-  await page.getByRole('button', { name: 'После изменений', exact: true }).click();
-  await page.getByLabel('Выбрать DOCX-файл').setInputFiles('public/examples/audit-example.docx');
+  await expect(page.getByLabel('Выбрать документ')).toBeEnabled();
+  await page.getByLabel('Выбрать документ').setInputFiles('public/examples/before.docx');
   await page.getByRole('button', { name: 'Обработать документ', exact: true }).click();
-  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible({ timeout: 10_000 });
-  expect(uploadBody).toContain('name="file"');
-  expect(uploadBody).toContain('name="phase"');
-  expect(uploadBody).toContain('after');
-  expect(polls).toBe(2);
-  await expect(page.locator('#paragraph-source-42')).toContainText('Серверный текст отчёта');
+  await expect(page.getByText('Не удалось прочитать документ', { exact: true })).toBeVisible();
+  await expect(page.getByText('Документ прочитан', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Повторить попытку', exact: true }).click();
+  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible();
+  expect(requests).toBe(2);
   await expect(page.getByText('Обработано на сервере', { exact: true })).toBeVisible();
 });
 
-test('reports an HTTP error and allows retry without pretending local success', async ({ page }) => {
-  let requests = 0;
-  await page.route('**/api/documents', async (route) => {
-    requests++;
-    await route.fulfill(requests === 1 ? { status: 413 } : { json: { id: 'retried', status: 'ready', result: { text: 'Документ после повторной отправки' } } });
-  });
+test('polling recovers from a transient server failure and restores real results', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Выбрать DOCX-файл').setInputFiles('public/examples/audit-example.docx');
-  await page.getByRole('button', { name: 'Обработать документ', exact: true }).click();
-  await expect(page.getByText('Сервер отклонил размер файла.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Документ прочитан', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Повторить попытку' }).click();
-  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible();
-  expect(requests).toBe(2);
+  await page.getByRole('button', { name: 'Загрузить пример «до/после»' }).click();
+  await expect(page.getByRole('button', { name: 'Запустить сравнение' })).toBeEnabled();
+  let failed = false;
+  await page.route(/\/api\/v1\/comparisons\/[^/]+$/, async (route) => {
+    if (route.request().method() === 'GET' && !failed) {
+      failed = true;
+      await route.fulfill({ status: 503, json: { error: { code: 'temporarily_unavailable', message: 'Временный сбой связи.' } } });
+    } else await route.continue();
+  });
+  await page.getByRole('button', { name: 'Запустить сравнение' }).click();
+  await expect(page.getByRole('region', { name: 'Результат сравнения', exact: true })).toBeVisible({ timeout: 20_000 });
+  expect(failed).toBe(true);
+  await expect(page.locator('.analysis-finding')).toHaveCount(3);
 });
 
-test('cancels queued processing and starts a fresh request on retry', async ({ page }) => {
-  let uploads = 0;
-  await page.route('**/api/documents', async (route) => {
-    uploads++;
-    await route.fulfill({ status: 202, json: { id: `job-${uploads}`, status: 'queued' } });
-  });
-  await page.route('**/api/documents/job-*', async (route) => {
-    const id = route.request().url().split('/').pop();
-    await route.fulfill({ json: id === 'job-1' ? { id, status: 'processing' } : { id, status: 'ready', result: { text: 'Новая обработка завершена' } } });
+test('initial health failure can be retried without reloading the page', async ({ page }) => {
+  let available = false;
+  await page.route('**/health', async (route) => {
+    if (!available) await route.fulfill({ status: 503 });
+    else await route.continue();
   });
   await page.goto('/');
-  await page.getByLabel('Выбрать DOCX-файл').setInputFiles('public/examples/audit-example.docx');
+  await expect(page.getByRole('alert')).toBeVisible();
+  available = true;
+  await page.getByRole('button', { name: 'Повторить подключение' }).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('Демонстрационный анализ', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Загрузить пример «до/после»' }).click();
+  await expect(page.getByRole('button', { name: 'Запустить сравнение' })).toBeEnabled();
+});
+
+test('cancelling an acknowledged upload removes the saved server file and permits retry', async ({ page }) => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  let savedId = '';
+  let intercepted = false;
+  await page.route('**/api/v1/comparisons/*/documents?side=*', async (route) => {
+    if (intercepted) return route.continue();
+    intercepted = true;
+    // Playwright's intercepted multipart postData does not preserve file bytes.
+    // Persist the same real file, then delay its acknowledgement to the browser.
+    const response = await page.request.post(route.request().url(), {
+      multipart: { file: { name: 'before.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: await readFile('public/examples/before.docx') } },
+    });
+    expect(response.status()).toBe(201);
+    savedId = (await response.json()).comparison_id;
+    await gate;
+    await route.fulfill({ response });
+  });
+  await page.goto('/');
+  await expect(page.getByLabel('Выбрать документ')).toBeEnabled();
+  await page.getByLabel('Выбрать документ').setInputFiles('public/examples/before.docx');
   await page.getByRole('button', { name: 'Обработать документ', exact: true }).click();
-  await expect(page.getByText('Читаем ваш документ')).toBeVisible();
+  await expect.poll(() => typeof savedId === 'string' && savedId.length > 0).toBe(true);
   await page.getByRole('button', { name: 'Отменить', exact: true }).click();
-  await expect(page.getByText('Документ готов к обработке')).toBeVisible();
+  release();
+  await expect(page.getByText('Документ готов к обработке', { exact: true })).toBeVisible();
+  const stored = await page.request.get(`/api/v1/comparisons/${savedId}`);
+  expect((await stored.json()).documents).toHaveLength(0);
   await page.getByRole('button', { name: 'Обработать документ', exact: true }).click();
-  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(page.locator('.document-content')).toContainText('Новая обработка завершена');
-  expect(uploads).toBe(2);
+  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible();
+  const retried = await page.request.get(`/api/v1/comparisons/${savedId}`);
+  expect((await retried.json()).documents).toHaveLength(1);
+});
+
+test('completed comparison can retry a source preview after an interrupted reload', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Загрузить пример «до/после»' }).click();
+  await page.getByRole('button', { name: 'Запустить сравнение' }).click();
+  await expect(page.getByRole('region', { name: 'Результат сравнения', exact: true })).toBeVisible({ timeout: 20_000 });
+  await page.route('**/fragments?*', (route) => route.fulfill({ status: 503 }));
+  await page.reload();
+  await page.locator('.document-name').filter({ hasText: 'before.docx' }).click();
+  await expect(page.getByRole('heading', { name: 'Не удалось загрузить текст' })).toBeVisible();
+  await page.unroute('**/fragments?*');
+  await page.getByRole('button', { name: 'Повторить загрузку текста' }).click();
+  await expect(page.getByText('Документ прочитан', { exact: true })).toBeVisible();
 });

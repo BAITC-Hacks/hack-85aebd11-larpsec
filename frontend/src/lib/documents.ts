@@ -5,7 +5,7 @@ export const MAX_TEXT_LENGTH = 2_000_000;
 export const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 export function validateFile(file: Pick<File, 'name' | 'size'>): string | undefined {
-  if (!/\.docx$/i.test(file.name)) return 'Поддерживается только DOCX. Сохраните документ Word в формате .docx и попробуйте снова.';
+  if (!/\.(docx|pdf|xlsx)$/i.test(file.name)) return 'Поддерживаются DOCX, PDF и XLSX. Сохраните документ в одном из этих форматов.';
   if (!file.size) return 'Файл пустой. Выберите документ с содержимым.';
   if (file.size > MAX_FILE_SIZE) return 'Файл больше 20 МБ. Уменьшите его размер и попробуйте снова.';
 }
@@ -22,6 +22,16 @@ export function paragraphsFromText(text: string): Paragraph[] {
     const match = part.match(/^(\d+(?:\.\d+)*)(?:[.)])?\s/);
     return { id: `p-${index + 1}`, text: part, ...(match ? { section: match[1] } : {}) };
   });
+}
+
+export async function validateDocumentSignature(file: File) {
+  if (/\.docx$/i.test(file.name)) return validateDocxSignature(file);
+  const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (/\.pdf$/i.test(file.name)) {
+    if (new TextDecoder().decode(signature) !== '%PDF-') throw new Error('Файл не похож на PDF или повреждён. Сохраните документ заново.');
+  } else if (signature.length < 4 || signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 3 || signature[3] !== 4) {
+    throw new Error('Файл не похож на XLSX или повреждён. Откройте его в Excel и сохраните заново.');
+  }
 }
 
 export function normalizeText(text: string, warnings: string[] = []): DocumentResult {
@@ -46,7 +56,7 @@ export function downloadText(name: string, text: string) {
   const url = URL.createObjectURL(new Blob(['\ufeff', text], { type: 'text/plain;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = name.replace(/\.docx$/i, '') + '.txt';
+  link.download = name.replace(/\.(docx|pdf|xlsx)$/i, '') + '.txt';
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

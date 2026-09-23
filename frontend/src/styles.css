@@ -106,6 +106,8 @@ button {
   top: -60px;
   left: 20px;
   z-index: 100;
+  opacity: 0;
+  pointer-events: none;
   padding: 12px 18px;
   background: white;
   border-radius: 8px;
@@ -113,6 +115,8 @@ button {
 
 .skip-link:focus {
   top: 10px;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .app-shell {
@@ -1469,6 +1473,8 @@ main {
 }
 
 .table-scroll {
+  /* Keep the absolute screen-reader heading inside the scrolling table. */
+  position: relative;
   overflow-x: auto;
 }
 

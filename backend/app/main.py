@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from app.analysis import Analyzer
@@ -330,6 +331,11 @@ def create_app(settings: Settings | None = None, analyzer: Analyzer | None = Non
         )
 
     app.include_router(router)
+    # Keep API, health and OpenAPI routes ahead of the frontend. StaticFiles serves
+    # index.html only for directory URLs; unknown API/asset paths remain HTTP 404.
+    frontend_dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if (frontend_dist / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
     return app
 
 
